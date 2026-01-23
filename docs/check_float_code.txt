@@ -1,0 +1,56 @@
+
+    def check_floats(self):
+        """
+        Industry Standard Verification: Check for long yarn floats.
+        """
+        if self.current_image_path is None:
+            return
+
+        # We operate on the current 'weave' or 'mask'
+        # Ideally this runs on the specific weave structure, but for now we can check the mask
+        # assuming the mask represents solid areas of warp/weft.
+        # OR better: run it on the currently active channel/layer.
+        
+        # For now, let's verify the mask itself as if it were a 2-color weave (Body vs Ground)
+        # Class 1 vs rest.
+        
+        mask = self.editor.get_mask_array()
+        if mask is None:
+            QMessageBox.warning(self, "No Data", "Please segment or draw first.")
+            return
+
+        # Create binary pattern for verification (Body as 1, rest as 0)
+        binary = (mask == 1).astype(np.uint8)
+
+        # Ask user for max float length
+        from PyQt6.QtWidgets import QInputDialog
+        length, ok = QInputDialog.getInt(self, "Float Check", "Max Float Length (pixels):", 20, 5, 200)
+        if not ok:
+            return
+            
+        try:
+            from sj_das.core.verifier import FloatsVerifier
+            error_mask = FloatsVerifier.check_floats(binary, max_float_length=length)
+            
+            count = np.count_nonzero(error_mask)
+            
+            if count > 0:
+                # Show errors
+                # Create a red overlay for errors
+                # We can add it as a temporary layer or just alert the user
+                # Let's overlay it on the editor if possible or save an error map
+                
+                # Visualize: Set mask to show errors?
+                # Or pop up a dialog
+                QMessageBox.warning(self, "Float Errors Found", f"Found {count} pixels with excessive floats!\nIdeally, break these areas with binding points.")
+                
+                # Highlight in editor (using a special 'Error' mode or temporary mask)
+                # For now, let's just save the error map to verify
+                # cv2.imwrite("float_errors.png", error_mask)
+                self.editor.set_selection_mask(error_mask) # Highlight errors as selection!
+            else:
+                QMessageBox.information(self, "Passed", "No excessive floats detected. Pattern is loom-safe.")
+                
+        except Exception as e:
+            QMessageBox.critical(self, "Verification Error", f"Error checking floats: {e}")
+            print(e)

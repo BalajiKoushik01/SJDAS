@@ -1,0 +1,181 @@
+/* 
+   SJ-DAS - Professional "Adobe" Theme
+   High-contrast, Neutral Dark, Minimalist 
+*/
+
+/* --- GLOBAL RESET --- */
+* {
+    font-family: "Segoe UI", "San Francisco", "Helvetica Neue", sans-serif;
+    font-size: 11px;
+    selection-background-color: #0E639C; /* Adobe/VS Code Blue */
+    selection-color: #FFFFFF;
+    outline: none;
+}
+
+QWidget {
+    background-color: #1E1E1E; /* Neutral Dark Base */
+    color: #CCCCCC;           /* Neutral Text */
+}
+
+/* --- MAIN WINDOW --- */
+QMainWindow::separator {
+    background-color: #1E1E1E;
+    width: 2px;
+    height: 2px;
+}
+QMainWindow::separator:hover {
+    background-color: #0E639C;
+}
+
+/* --- TOOLBARS --- */
+QToolBar {
+    background-color: #252526;
+    border-bottom: 1px solid #2B2B2B;
+    spacing: 1px;
+}
+QToolBar::handle {
+    image: none;
+}
+
+QToolButton {
+    background-color: transparent;
+    border: 1px solid transparent;
+    border-radius: 2px;
+    padding: 6px;
+    margin: 1px;
+}
+QToolButton:hover {
+    background-color: #383838;
+}
+QToolButton:pressed {
+    background-color: #3E3E42;
+}
+QToolButton:checked {
+    background-color: #3A3D41;
+    border: 1px solid #383838;
+}
+
+/* --- INPUTS --- */
+QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox, QTextEdit, QPlainTextEdit {
+    background-color: #2D2D2D; /* Input specific background */
+    color: #F0F0F0;
+    border: 1px solid #3E3E42;
+    border-radius: 0px; /* Flat Adobe style */
+    padding: 4px;
+    min-height: 22px; 
+}
+QLineEdit:focus, QSpinBox:focus, QComboBox:focus {
+    border: 1px solid #007ACC;
+}
+QComboBox::drop-down {
+    border: none;
+    width: 20px;
+    background-color: transparent;
+}
+QComboBox::down-arrow {
+    image: none; /* Add custom svg later if needed */
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid #CCCCCC;
+    margin-right: 6px;
+}
+
+/* --- BUTTONS --- */
+QPushButton {
+    background-color: #0E639C;
+    color: #FFFFFF;
+    border: none;
+    padding: 6px 12px;
+    font-weight: 600;
+}
+QPushButton:hover {
+    background-color: #1177BB;
+}
+QPushButton:pressed {
+    background-color: #094771;
+}
+QPushButton:disabled {
+    background-color: #333333;
+    color: #666666;
+}
+
+/* Secondary / Flat Button */
+QPushButton[flat="true"] {
+    background-color: transparent;
+    border: 1px solid #3E3E42;
+    color: #CCCCCC;
+    font-weight: normal;
+}
+QPushButton[flat="true"]:hover {
+    background-color: #2A2D2E;
+}
+
+/* --- TABS --- */
+QTabWidget::pane { 
+    border: 1px solid #2B2B2B;
+    top: -1px; 
+}
+QTabBar::tab {
+    background: #252526;
+    color: #969696;
+    padding: 8px 16px;
+    border-top: 2px solid transparent;
+}
+QTabBar::tab:selected {
+    background: #1E1E1E;
+    color: #FFFFFF;
+    border-top: 2px solid #0E639C; /* Active Tab Indicator */
+}
+QTabBar::tab:hover {
+    color: #FFFFFF;
+}
+
+/* --- SCROLLBAR (Minimalist) --- */
+QScrollBar:vertical {
+    border: none;
+    background: #1E1E1E;
+    width: 10px;
+    margin: 0px;
+}
+QScrollBar::handle:vertical {
+    background: #424242;
+    min-height: 20px;
+    border-radius: 5px;
+    margin: 1px;
+}
+QScrollBar::handle:vertical:hover {
+    background: #4F4F4F;
+}
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    height: 0px;
+}
+QScrollBar:horizontal {
+    border: none;
+    background: #1E1E1E;
+    height: 10px;
+}
+QScrollBar::handle:horizontal {
+    background: #424242;
+    min-width: 20px;
+    border-radius: 5px;
+    margin: 1px;
+}
+
+/* --- MENUS --- */
+QMenu {
+    background-color: #1E1E1E;
+    border: 1px solid #2B2B2B;
+}
+QMenu::item {
+    padding: 6px 24px;
+    background: transparent;
+}
+QMenu::item:selected {
+    background-color: #094771; /* Adobe Blue selection */
+    color: #FFFFFF;
+}
+QMenu::separator {
+    height: 1px;
+    background: #2B2B2B;
+    margin: 4px 0px;
+}

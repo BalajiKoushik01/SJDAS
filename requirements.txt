@@ -1,0 +1,51 @@
+# SJ-DAS Requirements
+# Core Dependencies
+
+# UI Framework
+PyQt6>=6.6.0
+PyQt6-WebEngine>=6.6.0
+qfluentwidgets>=1.5.0
+
+# AI/ML Core
+torch>=2.0.0
+torchvision>=0.15.0
+diffusers>=0.25.0
+transformers>=4.35.0
+accelerate>=0.25.0
+
+# Computer Vision
+opencv-python>=4.8.0
+Pillow>=10.0.0
+scikit-image>=0.21.0
+
+# CLIP for Image Understanding
+openai-clip>=1.0.1
+ftfy>=6.1.0
+
+# Machine Learning
+scikit-learn>=1.3.0
+numpy>=1.24.0
+scipy>=1.11.0
+
+# Image Processing
+imageio>=2.31.0
+imageio-ffmpeg>=0.4.9
+
+# Utilities
+tqdm>=4.66.0
+regex>=2023.10.0
+requests>=2.31.0
+python-dotenv>=1.0.0
+
+# Data Handling
+pandas>=2.0.0
+openpyxl>=3.1.0
+
+# Optional: GPU Acceleration
+# xformers>=0.0.22  # Uncomment for faster inference
+
+# Development
+pytest>=7.4.0
+black>=23.0.0
+flake8>=6.1.0
+

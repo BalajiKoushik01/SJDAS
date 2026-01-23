@@ -1,0 +1,32 @@
+name: Jules Code Maintenance
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 0 * * 0' # Weekly
+
+jobs:
+  maintenance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Run Jules Maintenance Script
+        run: |
+          if [ -f tools/jules_maintenance.py ]; then
+            python tools/jules_maintenance.py
+          else
+            echo "Jules maintenance script not found."
+          fi

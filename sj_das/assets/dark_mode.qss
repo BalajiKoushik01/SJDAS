@@ -1,0 +1,130 @@
+/* 
+   SJ-DAS "Obsidian" Premium Theme 
+   Inspired by Adobe Creative Cloud / VS Code Dark
+*/
+
+/* --- GLOBAL --- */
+QWidget {
+    background-color: #2b2b2b;
+    color: #e0e0e0;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 14px;
+}
+
+/* --- MAIN WINDOW --- */
+QMainWindow {
+    background-color: #1e1e1e;
+}
+
+/* --- PANELS & DOCKS --- */
+QDockWidget {
+    titlebar-close-icon: url(close.png);
+    titlebar-normal-icon: url(float.png);
+    border: 1px solid #3e3e3e;
+}
+
+QDockWidget::title {
+    background: #333333;
+    padding-left: 5px;
+    padding-top: 4px; 
+    height: 24px;
+    font-weight: bold;
+    color: #cccccc;
+}
+
+/* --- BUTTONS --- */
+QPushButton {
+    background-color: #3c3c3c;
+    border: 1px solid #555555;
+    border-radius: 4px;
+    padding: 6px 12px;
+    color: #ffffff;
+}
+
+QPushButton:hover {
+    background-color: #505050;
+    border: 1px solid #007acc; /* Accent Blue */
+}
+
+QPushButton:pressed {
+    background-color: #007acc;
+    border: 1px solid #005f9e;
+}
+
+QPushButton:disabled {
+    background-color: #2b2b2b;
+    color: #888888;
+    border: 1px solid #3e3e3e;
+}
+
+/* --- INPUTS --- */
+QLineEdit, QSpinBox, QComboBox {
+    background-color: #1e1e1e;
+    border: 1px solid #3e3e3e;
+    border-radius: 3px;
+    padding: 4px;
+    color: #ffffff;
+    selection-background-color: #007acc;
+}
+
+QLineEdit:focus, QSpinBox:focus, QComboBox:focus {
+    border: 1px solid #007acc;
+}
+
+/* --- LISTS & TREES --- */
+QListWidget, QTreeWidget, QTableWidget {
+    background-color: #1e1e1e;
+    border: 1px solid #3e3e3e;
+    alternate-background-color: #252525;
+}
+
+QListWidget::item:selected, QTreeWidget::item:selected {
+    background-color: #094771;
+    color: #ffffff;
+}
+
+QHeaderView::section {
+    background-color: #333333;
+    color: #e0e0e0;
+    padding: 4px;
+    border: 1px solid #3e3e3e;
+}
+
+/* --- SCROLLBARS (Modern Slim) --- */
+QScrollBar:vertical {
+    border: none;
+    background: #2b2b2b;
+    width: 10px;
+    margin: 0px 0px 0px 0px;
+}
+QScrollBar::handle:vertical {
+    background: #555555;
+    min-height: 20px;
+    border-radius: 5px;
+}
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    border: none;
+    background: none;
+}
+QScrollBar:horizontal {
+    border: none;
+    background: #2b2b2b;
+    height: 10px;
+    margin: 0px 0px 0px 0px;
+}
+QScrollBar::handle:horizontal {
+    background: #555555;
+    min-width: 20px;
+    border-radius: 5px;
+}
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+    border: none;
+    background: none;
+}
+
+/* --- STATUS BAR --- */
+QStatusBar {
+    background-color: #007acc; /* Brand Accent */
+    color: white;
+    font-weight: bold;
+}

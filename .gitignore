@@ -1,0 +1,72 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+venv/
+ENV/
+env/
+.venv/
+
+# IDEs
+.vscode/
+.idea/
+
+# Datasets ONLY (exclude large training data)
+dataset/
+data/
+datasets/
+textile_corpus.jsonl
+
+# Model files (large binary files)
+*.pth
+*.pt
+*.onnx
+*.h5
+*.pkl
+*.t7
+*.safetensors
+*.bin
+models/
+sj_das/models/
+checkpoints/
+
+# Logs and temporary files
+*.log
+logs/
+*.tmp
+*.temp
+temp_results/
+integration_test_output/
+runs/
+htmlcov/
+
+# Test and coverage
+.coverage
+.pytest_cache/
+*.cover
+.hypothesis/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+*.orig
+
+# Build and distribution
+build/
+dist/
+*.egg-info/
+.mypy_cache/
+.ruff_cache/
+
+# User data
+user_data/
+
+# Generated reports
+bandit_report.json
+benchmark_results.json
+model_validation_report.json
+error_log.txt

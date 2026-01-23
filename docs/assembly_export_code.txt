@@ -1,0 +1,165 @@
+# Assembly Export Dialog and Method
+# Appended to end of designer_view.py
+
+class AssemblyExportDialog(QDialog):
+    """Dialog for configuring assembly export parameters."""
+    def __init__(self, reed_count, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Assembly Export Configuration")
+        self.setModal(True)
+        self.setMinimumWidth(350)
+        
+        from PyQt6.QtWidgets import QFormLayout, QDialogButtonBox, QSpinBox, QComboBox, QLabel
+        
+        layout = QFormLayout(self)
+        
+        # Sequence Number
+        self.spin_seq = QSpinBox()
+        self.spin_seq.setRange(1, 99)
+        self.spin_seq.setValue(1)
+        self.spin_seq.setPrefix("Seq: ")
+        
+        # Design Type
+        self.combo_type = QComboBox()
+        self.combo_type.addItems(["Body", "Border", "Pallu", "Full Saree", "Blouse"])
+        
+        # Kali (Vertical Repeats)
+        self.spin_kali = QSpinBox()
+        self.spin_kali.setRange(1, 20)
+        self.spin_kali.setValue(2)
+        self.spin_kali.setToolTip("Number of vertical panel repeats")
+        
+        # Locking (Overlap)
+        self.spin_locking = QSpinBox()
+        self.spin_locking.setRange(0, 100)
+        self.spin_locking.setValue(10)
+        self.spin_locking.setSuffix(" px")
+        self.spin_locking.setToolTip("Overlap between kali panels")
+        
+        # Reed (Display only)
+        self.lbl_reed = QLabel(f"{reed_count} Reed")
+        
+        layout.addRow("Sequence:", self.spin_seq)
+        layout.addRow("Type:", self.combo_type)
+        layout.addRow("Kali (Repeats):", self.spin_kali)
+        layout.addRow("Locking (Overlap):", self.spin_locking)
+        layout.addRow("Reed:", self.lbl_reed)
+        
+        # Info
+        layout.addRow(QLabel("<small style='color:gray'>Assembly will repeat the design vertically with locking overlap</small>"))
+        
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        
+        layout.addWidget(buttons)
+    
+    def get_config(self):
+        return (
+            self.spin_seq.value(),
+            self.combo_type.currentText(),
+            self.spin_kali.value(),
+            self.spin_locking.value()
+        )
+
+
+# Add this method to DesignerView class:
+def export_assembly(self):
+    """
+    Export assembled saree with Kali repeats and locking, using AssemblerEngine.
+    Generates industry-standard filenames.
+    """
+    if self.current_image_path is None:
+        QMessageBox.warning(self, "No Image", "Please load an image first.")
+        return
+    
+    # Get refined mask from editor
+    mask = self.editor.get_mask_array()
+    if mask is None:
+        QMessageBox.warning(self, "No Mask", "Please run segmentation first.")
+        return
+    
+    img = self.editor.get_current_image()
+    if img is None:
+        QMessageBox.warning(self, "No Image", "Failed to get current image.")
+        return
+    
+    # Create Assembly Dialog
+    dialog = AssemblyExportDialog(self.reed_count, self)
+    if not dialog.exec():
+        return
+    
+    # Get configuration
+    seq, des_type, kali, locking = dialog.get_config()
+    
+    # Extract segmented components
+    components = {}
+    
+    # Extract body
+    body_mask = (mask == 1).astype(np.uint8) * 255
+    if body_mask.sum() > 0:
+        components['body'] = cv2.bitwise_and(img, img, mask=body_mask)
+    
+    # Extract borders
+    border_mask = (mask == 2).astype(np.uint8) * 255
+    if border_mask.sum() > 0:
+        border_extracted = cv2.bitwise_and(img, img, mask=border_mask)
+        components['border_l'] = border_extracted
+        components['border_r'] = border_extracted
+    
+    # Extract pallu
+    pallu_mask = (mask == 3).astype(np.uint8) * 255
+    if pallu_mask.sum() > 0:
+        components['pallu'] = cv2.bitwise_and(img, img, mask=pallu_mask)
+    
+    if not components:
+        QMessageBox.warning(self, "No Components", "No segmented components found. Please run segmentation first.")
+        return
+    
+    # Assembly Configuration
+    h, w = img.shape[:2]
+    config = {
+        'acchu': w,
+        'kali': kali,
+        'locking': locking
+    }
+    
+    try:
+        from sj_das.core.assembler import AssemblerEngine
+        assembler = AssemblerEngine()
+        assembled = assembler.assemble_saree(components, config)
+        
+        # Generate Smart Filename
+        total_width = assembled.shape[1]
+        
+        if kali > 1:
+            single_width = total_width // kali
+            if single_width * kali == total_width:
+                breakdown = "+".join([str(single_width)] * kali)
+            else:
+                breakdown = str(total_width)
+        else:
+            breakdown = str(total_width)
+        
+        default_name = f"{seq:02d} {des_type} {breakdown} {self.reed_count} Reed.bmp"
+        
+        base_dir = os.path.dirname(self.current_image_path) if self.current_image_path else "."
+        file_name, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save Assembled Design",
+            os.path.join(base_dir, default_name),
+            "BMP Files (*.bmp);;PNG Files (*.png)"
+        )
+        
+        if file_name:
+            cv2.imwrite(file_name, assembled)
+            QMessageBox.information(
+                self,
+                "Export Complete",
+                f"Assembled design exported:\\n{file_name}\\n\\nConfiguration:\\n- Kali: {kali}\\n- Locking: {locking} px\\n- Reed: {self.reed_count}"
+            )
+            
+    except Exception as e:
+        QMessageBox.critical(self, "Assembly Error", f"Failed to assemble design:\\n{e}")
+        import traceback
+        traceback.print_exc()

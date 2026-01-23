@@ -1,0 +1,123 @@
+@import "tailwindcss";
+
+/* --- Apple Human Interface Guidelines (Web Implementation) --- */
+
+:root {
+  /* Semantic System Colors (Dark Mode) */
+  --system-background: #1e1e1e;
+  /* NSWindowBackground */
+  --system-grouped-bg: #000000;
+  /* NSCollectionViewBackground */
+  --system-gray-6: #1c1c1e;
+  /* Secondary Grouped */
+  --system-gray-5: #2c2c2e;
+  /* Elevated */
+  --system-gray-4: #3a3a3c;
+  /* Separators */
+  --system-gray-3: #48484a;
+  /* Borders */
+  --system-gray-2: #636366;
+  /* Icons */
+  --system-gray: #8e8e93;
+  /* Text secondary */
+  --system-blue: #0a84ff;
+  /* Accent */
+  --system-red: #ff453a;
+  /* Destructive */
+
+  /* Text Semantics */
+  --label: #ffffff;
+  --secondary-label: rgba(235, 235, 245, 0.6);
+  --tertiary-label: rgba(235, 235, 245, 0.3);
+
+  /* Layout */
+  --sidebar-width: 260px;
+  --toolbar-height: 52px;
+}
+
+body {
+  background: var(--system-background);
+  color: var(--label);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+  font-size: 13px;
+  /* Standard macOS Interface Size */
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* --- Native Components (CSS Replicas) --- */
+
+/* NSSegmentedControl */
+.mac-segmented {
+  background: rgba(118, 118, 128, 0.24);
+  border-radius: 6px;
+  padding: 2px;
+  display: flex;
+}
+
+.mac-segmented-item {
+  flex: 1;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 5px;
+  color: inherit;
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.mac-segmented-item.active {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* NSPopUpButton */
+.mac-select {
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid transparent;
+  border-radius: 5px;
+  padding: 4px 8px;
+  font-size: 13px;
+  color: var(--label);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+  transition: background 0.15s;
+}
+
+.mac-select:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+/* NSButton (Push) */
+.mac-button {
+  background: var(--system-blue);
+  color: white;
+  border-radius: 5px;
+  font-weight: 500;
+  padding: 4px 12px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+  transition: filter 0.15s;
+}
+
+.mac-button:active {
+  filter: brightness(0.85);
+}
+
+.mac-button.secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--label);
+}
+
+/* NSWindow Sidebar */
+.mac-sidebar {
+  background: var(--system-gray-6);
+  border-right: 1px solid var(--system-gray-5);
+}
+
+/* Clean Separator */
+.mac-separator {
+  height: 1px;
+  background: var(--system-gray-5);
+  margin: 12px 0;
+}

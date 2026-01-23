@@ -1,0 +1,87 @@
+"""
+Add these methods to DesignerView class for AI integration
+Copy this to the end of the designer_view.py file before the last line
+"""
+
+    def handle_ai_suggestion(self, action: str, data: dict):
+        """Handle suggestion actions from AI panel."""
+        if action == 'refresh_analysis':
+            self.run_ai_analysis()
+        elif action == 'adjust_border_width':
+            suggested = data.get('suggested_width', 7)
+            QMessageBox.information(
+                self,
+                "Border Adjustment",
+                f"Suggested border width: {suggested}cm\n\n"
+                "Use the selection and resize tools to adjust your border to this width."
+            )
+        elif action == 'extend_pallu':
+            suggested = data.get('suggested_length', 100)
+            QMessageBox.information(
+                self,
+                "Pallu Extension",
+                f"Suggested pallu length: {suggested}cm\n\n"
+                "Consider extending your pallu design to comply with traditional proportions."
+            )
+        elif action == 'apply_color_scheme':
+            colors = data.get('colors', [])
+            if colors:
+                color_text = "\\n".join([f"• {c1} with {c2}" for c1, c2 in colors[:5]])
+                QMessageBox.information(
+                    self,
+                    "Traditional Color Combinations",
+                    f"Suggested color pairs:\\n{color_text}\\n\\n"
+                    "These combinations follow cultural traditions and are proven to work well."
+                )
+    
+    def run_ai_analysis(self):
+        """Run AI analysis on current image."""
+        if self.editor.pixmap is None or self.editor.pixmap.isNull():
+            return
+        
+        try:
+            # Convert QPixmap to numpy array
+            image = self.editor.pixmap.toImage()
+            width, height = image.width(), image.height()
+            
+            # Convert to numpy
+            ptr = image.constBits()
+            ptr.setsize(height * width * 4)
+            arr = np.frombuffer(ptr, np.uint8).reshape((height, width, 4))
+            
+            # Convert RGBA to RGB
+            rgb_image = cv2.cvtColor(arr, cv2.COLOR_RGBA2RGB)
+            
+            # Run AI prediction
+            prediction = self.ai_model.predict(rgb_image)
+            
+            if prediction:
+                # Calculate design metrics
+                design_metrics = {
+                    'width_px': width,
+                    'height_px': height,
+                    'has_mask': self.current_mask is not None
+                }
+                
+                # Generate suggestions
+                suggestions = self.ai_assistant.analyze_design(prediction, design_metrics)
+                
+                # Update UI
+                self.ai_insights_panel.update_insights(prediction, suggestions)
+                self.ai_last_analysis = prediction
+                
+                print(f"✅ AI Analysis Complete:")
+                print(f"   Pattern: {prediction['pattern']['type']} ({prediction['pattern']['confidence']:.1f}%)")
+                print(f"   Weave: {prediction['weave']['type']} ({prediction['weave']['confidence']:.1f}%)")
+                print(f"   Segmentation: {prediction['segmentation']['confidence']:.1f}% confident")
+                print(f"   Suggestions: {len(suggestions)}")
+            
+        except Exception as e:
+            print(f"AI Analysis Error: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def auto_analyze_on_load(self):
+        """Automatically run AI analysis when image is loaded."""
+        # Schedule analysis after a short delay to let UI update
+        QTimer.singleShot(500, self.run_ai_analysis)
