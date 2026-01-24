@@ -70,3 +70,13 @@ bandit_report.json
 benchmark_results.json
 model_validation_report.json
 error_log.txt
+
+# Secrets and Keys
+kaggle.json
+secrets.json
+.env
+.env.*
+*.key
+*.pem
+wandb/
+wandb.json
