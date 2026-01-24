@@ -39,6 +39,13 @@ class ModernMainWindow(FluentWindow):
 
         # 2. Appearance
         self._apply_professional_theme()
+        
+        # Disable Mica for debugging (Stability)
+        # self.setMicaEffectEnabled(True)
+        
+        # 2.5 Startup Animation (Disable for visibility check)
+        self.setWindowOpacity(1.0)
+        # QTimer.singleShot(100, self._animate_startup)
 
         # 3. UI Composition
         self._init_views()
@@ -87,15 +94,55 @@ class ModernMainWindow(FluentWindow):
 
     def _apply_professional_theme(self):
         """Load the master Adobe-style stylesheet."""
+        from sj_das.ui.theme_manager import ThemeManager
+        
+        # 1. Base QFluentWidgets Theme
         setTheme(Theme.DARK)
 
-        style_path = Path(__file__).parent.parent / \
-            "assets" / "adobe_theme.qss"
-        if style_path.exists():
-            with open(style_path, "r") as f:
-                self.setStyleSheet(f.read())
-        else:
-            logger.warning("Adobe theme not found, falling back to default.")
+        # 2. Apply Custom Professional Theme via Manager
+        self.theme_manager = ThemeManager()
+        stylesheet = self.theme_manager.get_stylesheet()
+        
+        # 3. Apply
+        self.setStyleSheet(stylesheet)
+        logger.info("Applied Professional Dark Theme (via ThemeManager).")
+
+    def _animate_startup(self):
+        """Fluid fade-in and slide-up animation for premium feel."""
+        from PyQt6.QtCore import QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QRect
+        
+        # 1. Opacity Animation
+        anim_fade = QPropertyAnimation(self, b"windowOpacity")
+        anim_fade.setDuration(800)
+        anim_fade.setStartValue(0.0)
+        anim_fade.setEndValue(1.0)
+        anim_fade.setEasingCurve(QEasingCurve.Type.OutCubic)
+        
+        # 2. Slide Up Animation
+        # Note: Geometry animation removed as it conflicts with showMaximized()
+        # start_rect = self.geometry()
+        # # Move down 30px initially
+        # start_rect.translate(0, 30)
+        # self.setGeometry(start_rect)
+        
+        # end_rect = self.geometry()
+        # end_rect.translate(0, -30) # Target matches original position
+        
+        # anim_move = QPropertyAnimation(self, b"geometry")
+        # anim_move.setDuration(800)
+        # anim_move.setStartValue(start_rect)
+        # anim_move.setEndValue(end_rect)
+        # anim_move.setEasingCurve(QEasingCurve.Type.OutCubic)
+        
+        # Group them
+        self.startup_group = QParallelAnimationGroup(self)
+        self.startup_group.addAnimation(anim_fade)
+        # self.startup_group.addAnimation(anim_move)
+        
+        # Clean up
+        self.startup_group.finished.connect(lambda: setattr(self, 'startup_group', None))
+        
+        self.startup_group.start()
 
     def _init_views(self):
         """Initialize main views."""
@@ -218,12 +265,8 @@ def create_modern_app():
     app = QApplication(sys.argv)
     app.setApplicationName("SJ-DAS Professional")
 
-    # High DPI Scaling for 'Retina' look
-    app.setHighDpiScaleFactorRoundingPolicy(
-        Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
-
     window = ModernMainWindow()
-    window.show()
+    window.showMaximized()
     sys.exit(app.exec())
 
 

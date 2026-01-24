@@ -7,8 +7,8 @@ from PyQt6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox,
                              QTabWidget, QVBoxLayout, QWidget)
 
 # Import AI Backend
-from sj_das.ai.stable_diffusion_generator import get_hybrid_generator
-
+# Import AI Backend
+from sj_das.ai.flux_generator import FluxGenerator
 
 # Mock DesignParameters if not available easily (or check prompt_parser.py)
 # Actually, let's create a simple dataclass adapter here to avoid complex
@@ -30,20 +30,12 @@ class SimpleDesignParams:
 class AIPatternGen:
     """
     Intelligent Pattern Generator for Textile Design.
-
-    Features:
-    - **Hybrid Architecture**: Combines Procedural Algorithms with Stable Diffusion.
-    - **Context Awareness**: Generates designs based on 'Occasion', 'Region', and 'Weave'.
-    - **Seamless Integration**: Directly updates the Editor Canvas.
-
-    Usage:
-    >>> generator = AIPatternGen(editor_instance)
-    >>> generator.show_dialog()
+    Powered by Flux.1 [schnell].
     """
 
     def __init__(self, editor):
         self.editor = editor
-        self.generator = get_hybrid_generator()
+        self.generator = FluxGenerator()
 
     def show_dialog(self):
         dialog = AIPatternDialog(self.generator)
@@ -68,24 +60,15 @@ class GenerationWorker(QThread):
         super().__init__()
         self.generator = generator
         self.params = params
-        self.use_ai = use_ai
-        self.use_flux = use_flux
-
+        # use_ai and use_flux flags are ignored now, we default to Flux
+        
     def run(self):
         # Generate
         try:
-            if self.use_flux:
-                # Use Flux.1 (SOTA)
-                from sj_das.core.engines.generative.flux_engine import \
-                    FluxEngine
-
-                # Note: FluxEngine handles model loading internally
-                flux = FluxEngine()
-                prompt = f"{self.params.design_type} design with {', '.join(self.params.motifs)} in {', '.join(self.params.colors)}, high quality, textile pattern"
-                res = flux.generate(prompt, width=512, height=512)
-            else:
-                res = self.generator.generate(
-                    self.params, use_ai_variation=self.use_ai)
+            # Always use Flux for World-Class results
+            res = self.generator.generate(
+                self.params, width=512, height=512
+            )
             self.finished.emit(res)
         except Exception as e:
             print(f"Gen Error: {e}")

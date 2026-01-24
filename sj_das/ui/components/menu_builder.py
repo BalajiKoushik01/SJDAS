@@ -126,6 +126,11 @@ class StandardMenuBuilder:
                 FIF.TILES,
                 "Toggle Grid",
                 triggered=self.view.toggle_grid))
+        menu.addAction(
+            Action(
+                FIF.TILES,
+                "Toggle Symmetry Mode",
+                triggered=self.view.toggle_symmetry))
         btn.setMenu(menu)
         self._add_btn(btn)
 
@@ -168,6 +173,30 @@ class StandardMenuBuilder:
                 FIF.PALETTE,
                 "Reduce to 16 Colors",
                 triggered=self.view.apply_smart_quantize_16))
+        
+        menu.addSeparator()
+
+        # Adjustments Submenu
+        adj_menu = Menu(title="Adjustments", parent=menu)
+        adj_menu.addAction(Action(FIF.EDIT, "Curves", triggered=self.view.show_curves))
+        adj_menu.addAction(Action(FIF.EDIT, "Levels", triggered=self.view.show_levels))
+        adj_menu.addAction(Action(FIF.EDIT, "Channel Mixer", triggered=self.view.show_channel_mixer))
+        adj_menu.addAction(Action(FIF.EDIT, "HSL / Saturation", triggered=self.view.show_hsl))
+        adj_menu.addAction(Action(FIF.EDIT, "Posterize", triggered=self.view.show_posterize))
+        adj_menu.addAction(Action(FIF.EDIT, "Threshold", triggered=self.view.show_threshold))
+        adj_menu.addAction(Action(FIF.EDIT, "Solarize", triggered=self.view.show_solarize))
+        menu.addMenu(adj_menu)
+
+        # Filters Submenu
+        filt_menu = Menu(title="Filters", parent=menu)
+        filt_menu.addAction(Action(FIF.BRUSH, "Vignette", triggered=self.view.show_vignette))
+        filt_menu.addAction(Action(FIF.BRUSH, "Film Grain", triggered=self.view.show_film_grain))
+        filt_menu.addAction(Action(FIF.BRUSH, "Noise Reduction", triggered=self.view.show_noise_reduction))
+        filt_menu.addAction(Action(FIF.BRUSH, "Pixelate", triggered=self.view.show_pixelate))
+        filt_menu.addAction(Action(FIF.BRUSH, "Emboss", triggered=self.view.show_emboss))
+        filt_menu.addAction(Action(FIF.BRUSH, "Halftone", triggered=self.view.show_halftone))
+        menu.addMenu(filt_menu)
+
 
         btn.setMenu(menu)
         self._add_btn(btn)
@@ -213,6 +242,11 @@ class StandardMenuBuilder:
                 FIF.TILES,
                 "Show Weave Simulator",
                 triggered=self.view.show_fabric_simulation))
+        menu.addAction(
+            Action(
+                FIF.TILES,
+                "Motif Repeater",
+                triggered=self.view.show_motif_repeater))
         menu.addSeparator()
         menu.addAction(
             Action(
@@ -381,6 +415,6 @@ class StandardMenuBuilder:
                 FIF.HELP,
                 "Help & Support",
                 triggered=lambda: None))
-        menu.addAction(Action(FIF.INFO, "About", triggered=lambda: None))
+        menu.addAction(Action(FIF.INFO, "About", triggered=self.view.show_about_dialog))
         btn.setMenu(menu)
         self._add_btn(btn)

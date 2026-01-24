@@ -35,24 +35,29 @@ class PanelFactory:
 
     def create_right_panels(self) -> QFrame:
         """Create professional right panels container"""
-        right_panels = QFrame()
-        right_panels.setObjectName("rightPanels")
-        right_panels.setMinimumWidth(50)   # Collapsed mode
-        right_panels.setMaximumWidth(600)  # Expanded mode
-        right_panels.setStyleSheet(f"""
-            QFrame#rightPanels {{
-                background-color: {COLORS['bg_primary']};
-                border-left: 1px solid {COLORS['border_subtle']};
-            }}
-        """)
+        from PyQt6.QtWidgets import QScrollArea
+        from PyQt6.QtCore import Qt
 
-        layout = QVBoxLayout(right_panels)
+        right_panels = QScrollArea()
+        right_panels.setObjectName("rightPanelsScroll")
+        right_panels.setWidgetResizable(True)
+        right_panels.setFrameShape(QFrame.Shape.NoFrame)
+        right_panels.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        
+        # Container for content
+        container = QFrame()
+        container.setObjectName("rightPanels")
+        
+        layout = QVBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
         # Tabs
         self.view.tabs = TabWidget()  # Attach to view for accessibility if needed
         tabs = self.view.tabs
+        
+        # Allow Tabs to expand/shrink
+        tabs.setMinimumHeight(600) # Ensure it doesn't shrink too much inside scroll
 
         # Create panels
         tabs.addTab(self.create_navigator_panel(), "Navigator")
@@ -62,9 +67,22 @@ class PanelFactory:
         tabs.addTab(self.create_ai_panel(), "AI")
         tabs.addTab(self.create_layers_panel(), "Layers")
         tabs.addTab(self.create_history_panel(), "History")
+        tabs.addTab(self.create_pattern_library_panel(), "Patterns")
 
         layout.addWidget(tabs)
+        
+        right_panels.setWidget(container)
+        
+        # Constraints are now on the ScrollArea
+        right_panels.setMinimumWidth(50)   
+        right_panels.setMaximumWidth(600)  
+        
         return right_panels
+
+    def create_pattern_library_panel(self):
+        from sj_das.ui.components.pattern_library import PatternLibraryWidget
+        self.view.pattern_library = PatternLibraryWidget(parent=self.view)
+        return self.view.pattern_library
 
     def create_navigator_panel(self):
         self.view.navigator = NavigatorWidget(self.editor)

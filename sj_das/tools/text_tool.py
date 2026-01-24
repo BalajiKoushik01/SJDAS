@@ -3,49 +3,17 @@ TEXT TOOL - Most Critical Missing Feature!
 Implements professional text editing for SJ-DAS
 """
 
-from PyQt6.QtCore import Qt, pyqtSignal
+import logging
+from PyQt6.QtCore import Qt, pyqtSignal, QPointF
 from PyQt6.QtGui import QColor, QFont
 from PyQt6.QtWidgets import (QColorDialog, QDialog, QFontComboBox,
                              QGraphicsScene, QGraphicsTextItem, QHBoxLayout,
-                             QLabel, QPushButton, QSpinBox, QVBoxLayout)
+                             QLabel, QPushButton, QSpinBox, QVBoxLayout,
+                             QCheckBox, QTextEdit, QDialogButtonBox)
 
+from sj_das.tools.base import Tool
 
-class TextTool:
-    """Professional text tool like Paint Shop Pro."""
-
-    def __init__(self, scene, editor):
-        self.scene = scene
-        self.editor = editor
-        self.active_text_item = None
-
-    def activate(self):
-        """Activate text tool - show dialog to create text."""
-        dialog = TextDialog(self.editor)
-        if dialog.exec():
-            # Get text properties
-            text = dialog.get_text()
-            font = dialog.get_font()
-            color = dialog.get_color()
-
-            # Create text item
-            text_item = QGraphicsTextItem(text)
-            text_item.setFont(font)
-            text_item.setDefaultTextColor(color)
-            text_item.setFlags(
-                QGraphicsTextItem.GraphicsItemFlag.ItemIsMovable |
-                QGraphicsTextItem.GraphicsItemFlag.ItemIsSelectable |
-                QGraphicsTextItem.GraphicsItemFlag.ItemIsFocusable
-            )
-
-            # Add to scene
-            self.scene.addItem(text_item)
-            self.active_text_item = text_item
-
-            # Position at center of view
-            view_center = self.editor.mapToScene(
-                self.editor.viewport().rect().center()
-            )
-            text_item.setPos(view_center)
+logger = logging.getLogger(__name__)
 
 
 class TextToolDialog(QDialog):
@@ -191,16 +159,22 @@ class TextToolDialog(QDialog):
         return self.current_color
 
 
-class TextTool:
+class TextTool(Tool):
     """Professional text tool for canvas."""
 
-    def __init__(self, scene: QGraphicsScene, editor):
-        self.scene = scene
-        self.editor = editor
-        self.current_text_item = None
+    def __init__(self, editor):
+        """Initialize with editor reference."""
+        super().__init__(editor)
+        self.active_text_item = None
+        # scene is available via editor.scene() if needed, or we can use editor.viewport() mapping
 
-    def activate(self):
-        """Activate text tool and show dialog."""
+    def mouse_press(self, pos: QPointF, buttons: Qt.MouseButton):
+        """Handle mouse click - Create text at position."""
+        if buttons & Qt.MouseButton.LeftButton:
+            self.activate_at(pos)
+
+    def activate_at(self, pos: QPointF):
+        """Activate text tool dialog and create text at specific position."""
         dialog = TextToolDialog(self.editor)
 
         if dialog.exec():
@@ -208,17 +182,19 @@ class TextTool:
             if text:
                 font = dialog.get_font()
                 color = dialog.get_color()
-                self.create_text(text, font, color)
+                self.create_text(text, font, color, pos)
 
-    def create_text(self, text, font, color):
+    def create_text(self, text, font, color, pos: QPointF = None):
         """Create text item on canvas."""
         # Create text item
         text_item = QGraphicsTextItem(text)
         text_item.setFont(font)
         text_item.setDefaultTextColor(color)
 
-        # Position at center of view
-        if hasattr(self.editor, 'viewport'):
+        # Position at click point or center
+        if pos:
+            text_item.setPos(pos)
+        elif hasattr(self.editor, 'viewport'):
             view_center = self.editor.viewport().rect().center()
             scene_center = self.editor.mapToScene(view_center)
             text_item.setPos(scene_center)
@@ -232,7 +208,12 @@ class TextTool:
             QGraphicsTextItem.GraphicsItemFlag.ItemIsSelectable, True)
 
         # Add to scene
-        self.scene.addItem(text_item)
-        self.current_text_item = text_item
+        # Access scene safely
+        scene = self.editor.scene()
+        if scene:
+            scene.addItem(text_item)
+            self.active_text_item = text_item
+        else:
+            logger.error("No scene found in editor to add text.")
 
         return text_item

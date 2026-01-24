@@ -45,30 +45,29 @@ class FluxGenerator:
             logger.error(f"Flux Load Error: {e}")
             return False
 
-    def generate(self, prompt: str, width: int = 512,
-                 height: int = 512, num_steps: int = 4) -> np.ndarray:
+    def generate(self, params, width: int = 512, height: int = 512, num_steps: int = 4) -> np.ndarray:
         """
-        Generates image from text prompt.
-
-        Args:
-            prompt: Text description
-            width: Image width
-            height: Image height
-            num_steps: Inference steps (4 is optimal for schnell)
-
-        Returns:
-            BGR numpy array
+        Generates image from text prompt or DesignParameters.
         """
         if not self.load_model():
             logger.warning("Flux unavailable, using fallback.")
             return self._fallback_generate(width, height)
 
         try:
-            # Textile-specific prompt enhancement
-            enhanced_prompt = f"high quality textile design, {prompt}, intricate patterns, vibrant colors, suitable for saree fabric"
+            # Handle prompt construction
+            if hasattr(params, 'prompt'): # If raw object with prompt
+                 raw_prompt = params.prompt
+            elif isinstance(params, str):
+                 raw_prompt = params
+            else:
+                 # It's DesignParameters
+                 raw_prompt = self._build_textile_prompt(params)
+
+            # Flux doesn't need much negative prompt, it adheres well.
+            logger.info(f"Flux Generating: {raw_prompt[:60]}...")
 
             result = self.pipe(
-                prompt=enhanced_prompt,
+                prompt=raw_prompt,
                 width=width,
                 height=height,
                 num_inference_steps=num_steps,
@@ -84,6 +83,38 @@ class FluxGenerator:
         except Exception as e:
             logger.error(f"Flux Generation Error: {e}")
             return self._fallback_generate(width, height)
+
+    def _build_textile_prompt(self, params) -> str:
+        """Build a detailed prompt optimized for textile designs (Ported from SD)."""
+        parts = []
+        
+        # Style Prefixes
+        style_prefixes = {
+            'kanchipuram': "traditional South Indian Kanchipuram silk saree design, heavy zari work, intricate patterns,",
+            'banarasi': "classic Banarasi silk brocade design, Mughal motifs, gold thread work,",
+            'paithani': "Maharashtrian Paithani saree design, peacock and lotus motifs, vibrant colors,",
+            'traditional': "traditional Indian silk saree design, cultural motifs, ethnic patterns,"
+        }
+        
+        # Add style prefix
+        style = getattr(params, 'style', 'traditional')
+        parts.append(style_prefixes.get(style, style_prefixes['traditional']))
+
+        # Design type
+        design_type = getattr(params, 'design_type', 'saree')
+        parts.append(f"{design_type} design,")
+
+        # Basic attributes
+        if hasattr(params, 'colors') and params.colors:
+             parts.append(f"{' and '.join(params.colors)} color scheme,")
+        
+        if hasattr(params, 'motifs') and params.motifs:
+             parts.append(f"featuring {' '.join(params.motifs)} motifs,")
+
+        # Quality Suffix for Flux
+        parts.append("macro photography, ultra detailed, fabric texture, 4k, photorealistic")
+        
+        return " ".join(parts)
 
     def _fallback_generate(self, w, h):
         """Procedural fallback pattern."""

@@ -12,6 +12,13 @@ from PyQt6.QtWidgets import (QApplication, QGraphicsPixmapItem, QGraphicsScene,
 from sj_das.ui.commands import BitmapEditCommand
 # Modular Imports
 from sj_das.utils.geometry_utils import bresenham_line
+from sj_das.tools import (
+    BrushTool, FillTool, GradientTool, PanTool, PerspectiveTool,
+    PickerTool, LassoTool, MagicWandTool, EllipseTool, LineTool,
+    RectTool, RectSelectTool, CloneTool, TextTool
+)
+from sj_das.tools.smudge import SmudgeTool
+from sj_das.tools.eraser import EraserTool
 
 # --- 1. UNDO COMMAND ---
 # Moved to sj_das/ui/commands.py
@@ -39,8 +46,18 @@ class PixelEditorWidget(QGraphicsView):
 
     # Tool Enums
     TOOL_NONE = 0
-    # ... (Keep existing Enums)
+    TOOL_BRUSH = 1
+    TOOL_ERASER = 2
+    TOOL_FILL = 3
+    TOOL_PICKER = 4
+    TOOL_PAN = 5
+    TOOL_LINE = 6
+    TOOL_RECT = 7
+    TOOL_GRADIENT = 8
     TOOL_MAGIC_WAND = 9
+    TOOL_SELECT_RECT = 20
+    TOOL_TEXT = 21
+    TOOL_CLONE = 13  # Explicit define
 
     # ... (Start of mousePressEvent usually around line 450-500, let's find it)
 
@@ -51,25 +68,45 @@ class PixelEditorWidget(QGraphicsView):
             super().mousePressEvent(event)
             return
 
-        # Phase 12: Magic Wand Click
         map_pos = self.mapToScene(event.pos())
-        x = int(map_pos.x())
-        y = int(map_pos.y())
+        self.cursor_moved.emit(int(map_pos.x()), int(map_pos.y()))
 
+        # Phase 12: Magic Wand Click
         if self.current_tool == self.TOOL_MAGIC_WAND:
-            self.canvas_clicked.emit(x, y)
-            return
+            self.canvas_clicked.emit(int(map_pos.x()), int(map_pos.y()))
+            
+        # Tool Delegation
+        tool = self.tools.get(self.current_tool)
+        if tool:
+            tool.mouse_press(map_pos, event.buttons())
 
-        # ... (Rest of existing logic)
+    def mouseMoveEvent(self, event):
+        # Update Rulers
+        if hasattr(self, 'h_ruler'):
+            p = event.pos()
+            self.h_ruler.update_cursor_pos(p.x())
+            self.v_ruler.update_cursor_pos(p.y())
 
-        self.is_drawing = True
-        self.start_point = map_pos
-        self.last_point = map_pos
+        map_pos = self.mapToScene(event.pos())
+        self.cursor_moved.emit(int(map_pos.x()), int(map_pos.y()))
+        
+        tool = self.tools.get(self.current_tool)
+        if tool:
+            tool.mouse_move(map_pos, event.buttons())
+            
+        super().mouseMoveEvent(event)
 
-        if self.current_tool == self.TOOL_PICKER:
-            self._pick_color(x, y)
-        elif self.current_tool == self.TOOL_FILL:
-            self._flood_fill(x, y)
+    def mouseReleaseEvent(self, event):
+        map_pos = self.mapToScene(event.pos())
+        
+        tool = self.tools.get(self.current_tool)
+        if tool:
+            tool.mouse_release(map_pos, event.buttons())
+            
+        if self.dragMode() == QGraphicsView.DragMode.ScrollHandDrag:
+            self.setDragMode(QGraphicsView.DragMode.NoDrag)
+            
+        super().mouseReleaseEvent(event)
 
     TOOL_LASSO = 10
     TOOL_PERSPECTIVE = 11
@@ -98,6 +135,7 @@ class PixelEditorWidget(QGraphicsView):
         self.image_item = None
         self.mask_item = None
         self.selection_item = None
+        self.mask_image = None # Fix for NavigatorWidget crash
 
         # State
         self.current_tool = self.TOOL_BRUSH  # Start with brush active
@@ -109,49 +147,124 @@ class PixelEditorWidget(QGraphicsView):
         self.last_point = None
 
         self.zoom_factor = 1.0
-        # Fix: Grid visible by default (User Request)
-        self.show_grid = True  # Default ON
-        self.grid_color_mode = 0
-        self.grid_spacing = 8  # Phase 12: Configurable grid spacing
-        self.snap_to_grid = False  # Phase 12: Snap to grid toggle
-        self.snap_to_guides = False  # Phase 12: Snap to guides toggle
-        self.pattern = None
 
+    def drawBackground(self, painter, rect):
+        """High-performance Grid Rendering."""
+        super().drawBackground(painter, rect)
+
+        if not self.show_grid or self.grid_spacing <= 0:
+            return
+
+        # Optimization: Don't draw 1px grid if zoomed out too far
+        if self.grid_spacing == 1 and self.zoom_factor < 2.0:
+            return # Too dense to display useful info
+
+        left = int(rect.left())
+        right = int(rect.right())
+        top = int(rect.top())
+        bottom = int(rect.bottom())
+
+        # Snap to grid
+        first_left = left - (left % self.grid_spacing)
+        first_top = top - (top % self.grid_spacing)
+
+        # Draw lines
+        lines = []
+        
+        # Vertical
+        for x in range(first_left, right, self.grid_spacing):
+            lines.append(QLineF(x, top, x, bottom))
+
+        # Horizontal
+        for y in range(first_top, bottom, self.grid_spacing):
+            lines.append(QLineF(left, y, right, y))
+            
+        if lines:
+            painter.setPen(QPen(self.grid_color, 0)) # Cosmetic pen
+            painter.drawLines(lines)
+        
+        # Dimensions (Fix for AttributeError)
+        self.canvas_width = 2400  # Default professional size
+        self.canvas_height = 3000
+        
+        # Grid settings
+        self.show_grid = True  
+        self.grid_spacing = 1  # User Request: Default to 1px
+        self.grid_color = QColor(255, 255, 255, 30) # Subtle grid
+        
         # Tool Parameters
         self.wand_tolerance = 32  # Default tolerance
         self.brush_hardness = 100
         self.brush_flow = 100  # Phase 10: Brush Flow
         self.brush_opacity = 100  # Phase 10: Brush Opacity
 
-        # Data
-        # Create a blank white canvas by default (like Photoshop)
-        # This allows tools to work immediately without loading an image
-        self.canvas_width = 480
-        self.canvas_height = 480
+        # Initialize Tools Strategy Pattern
+        self.tools = {
+            self.TOOL_BRUSH: BrushTool(self, is_eraser=False),
+            self.TOOL_ERASER: EraserTool(self),
+            self.TOOL_FILL: FillTool(self),
+            self.TOOL_PICKER: PickerTool(self),
+            self.TOOL_PAN: PanTool(self),
+            self.TOOL_GRADIENT: GradientTool(self),
+            self.TOOL_MAGIC_WAND: MagicWandTool(self),
+            self.TOOL_LASSO: LassoTool(self),
+            self.TOOL_PERSPECTIVE: PerspectiveTool(self),
+            self.TOOL_LINE: LineTool(self),
+            self.TOOL_RECT: RectTool(self),
+            self.TOOL_ELLIPSE: EllipseTool(self),
+            self.TOOL_SELECT_RECT: RectSelectTool(self),
+            self.TOOL_TEXT: TextTool(self),
+            self.TOOL_CLONE: CloneTool(self),
+            self.TOOL_SMUDGE: SmudgeTool(self),
+        }
 
-        # Pattern Data
-        self.active_pattern = None  # Numpy Array (H, W, 3) BGR
+        # Create default white canvas (also resets undo stack)
+        self.create_blank_canvas(self.canvas_width, self.canvas_height)
 
-        # Initialize original_image with a white canvas
-        self.original_image = QImage(
-            self.canvas_width,
-            self.canvas_height,
-            QImage.Format.Format_RGB888)
-        self.original_image.fill(Qt.GlobalColor.white)
+        # View settings (Optimization)
+        self.setRenderHint(QPainter.RenderHint.Antialiasing, False)
+        self.setRenderHint(
+            QPainter.RenderHint.SmoothPixmapTransform,
+            False)  # Nearest Neighbor is key here
+        self.setDragMode(QGraphicsView.DragMode.NoDrag)
+        self.setTransformationAnchor(
+            QGraphicsView.ViewportAnchor.AnchorUnderMouse)
+        self.setResizeAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
+        self.setMouseTracking(True)
+        self.setAcceptDrops(True)  # Enable Drag and Drop
+        # Essential for Shortcuts
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
-        # Initialize mask_image as transparent
-        self.mask_image = QImage(
-            self.canvas_width,
-            self.canvas_height,
-            QImage.Format.Format_ARGB32)
-        self.mask_image.fill(Qt.GlobalColor.transparent)
+        # --- PHASE 9: RULERS ---
+        from sj_das.ui.components.rulers import RulerWidget
+        self.ruler_size = 25
+        self.setViewportMargins(self.ruler_size, self.ruler_size, 0, 0)
 
-        self.selection_mask = np.zeros(
-            (self.canvas_height, self.canvas_width), dtype=np.uint8)
+        self.h_ruler = RulerWidget(RulerWidget.HORIZONTAL, self)
+        self.v_ruler = RulerWidget(RulerWidget.VERTICAL, self)
+        self.h_ruler.set_view(self)
+        self.v_ruler.set_view(self)
 
-        # Update scene with blank canvas
-        self._update_scene()
-        self.centerOn(self.canvas_width / 2, self.canvas_height / 2)
+        # Phase 10: Brush Cursor
+        self.cursor_item = None
+        self._cursor_pen = QPen(QColor(0, 0, 0), 1, Qt.PenStyle.SolidLine)
+        self._cursor_pen.setCosmetic(True)  # Keep 1px width regardless of zoom
+
+        # Phase 11: Symmetry Engine
+        from sj_das.core.symmetry import SymmetryManager
+        self.symmetry = SymmetryManager(self)
+
+        # Corner box
+        from PyQt6.QtWidgets import QLabel
+        self.corner_box = QLabel("px", self)
+        self.corner_box.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.corner_box.setStyleSheet(
+            "background-color: #282828; color: #888; font-size: 10px;")
+        self.corner_box.resize(self.ruler_size, self.ruler_size)
+
+    def set_pattern(self, pattern):
+        """Sets the active pattern for Fill/Bucket tools."""
+        self.active_pattern = pattern
 
     def create_blank_canvas(self, width, height):
         """Creates a new blank canvas with specified dimensions."""
@@ -187,62 +300,59 @@ class PixelEditorWidget(QGraphicsView):
         # Signals
         self.mask_updated.emit()
 
-        # View settings (Optimization)
-        self.setRenderHint(QPainter.RenderHint.Antialiasing, False)
-        self.setRenderHint(
-            QPainter.RenderHint.SmoothPixmapTransform,
-            False)  # Nearest Neighbor is key here
-        self.setDragMode(QGraphicsView.DragMode.NoDrag)
-        self.setTransformationAnchor(
-            QGraphicsView.ViewportAnchor.AnchorUnderMouse)
-        self.setResizeAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
-        self.setMouseTracking(True)
-        # Essential for Shortcuts
-        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
-        # --- PHASE 9: RULERS ---
-        from sj_das.ui.components.rulers import RulerWidget
-        self.ruler_size = 25
-        self.setViewportMargins(self.ruler_size, self.ruler_size, 0, 0)
 
-        self.h_ruler = RulerWidget(RulerWidget.HORIZONTAL, self)
-        self.v_ruler = RulerWidget(RulerWidget.VERTICAL, self)
-        self.h_ruler.set_view(self)
-        self.v_ruler.set_view(self)
+    # ==================== DRAG AND DROP ====================
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls() or event.mimeData().hasColor() or event.mimeData().hasText():
+            event.accept()
+        else:
+            event.ignore()
 
-        # Phase 10: Brush Cursor
-        self.cursor_item = None
-        self._cursor_pen = QPen(QColor(0, 0, 0), 1, Qt.PenStyle.SolidLine)
-        self._cursor_pen.setCosmetic(True)  # Keep 1px width regardless of zoom
-
-        # Phase 11: Symmetry Engine
-        from sj_das.core.symmetry import SymmetryManager
-        self.symmetry = SymmetryManager(self)
-
-        # Corner box
-        from PyQt6.QtWidgets import QLabel
-        self.corner_box = QLabel("px", self)
-        self.corner_box.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.corner_box.setStyleSheet(
-            "background-color: #282828; color: #888; font-size: 10px;")
-        self.corner_box.resize(self.ruler_size, self.ruler_size)
-
+    def dropEvent(self, event):
+        mime = event.mimeData()
+        
+        # Handle Color Drop (from Pattern Library or Palette)
+        if mime.hasColor():
+            col = mime.colorData()
+            if isinstance(col, QColor):
+                self.brush_color = col
+                self.color_picked.emit(col)
+                # Ensure tool is brush or fill?
+                # For UX: Switch to Brush if not Fill/Gradient
+                if self.current_tool not in [self.TOOL_FILL, self.TOOL_GRADIENT]:
+                    # Optionally switch?
+                    pass
+            event.accept()
+            
+        # Handle File Drop (Import)
+        elif mime.hasUrls():
+            urls = mime.urls()
+            if urls:
+                path = urls[0].toLocalFile()
+                img = QImage(path)
+                if not img.isNull():
+                    self.set_image(img)
+            event.accept()
+            
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        # Resize Rulers
-        w = self.width()
-        h = self.height()
-        self.h_ruler.setGeometry(
-            self.ruler_size,
-            0,
-            w - self.ruler_size,
-            self.ruler_size)
-        self.v_ruler.setGeometry(
-            0,
-            self.ruler_size,
-            self.ruler_size,
-            h - self.ruler_size)
-        self.corner_box.move(0, 0)
+        
+        # Legacy Ruler Handling (Guard against missing rulers)
+        if hasattr(self, 'h_ruler') and hasattr(self, 'v_ruler'):
+            w = self.width()
+            h = self.height()
+            self.h_ruler.setGeometry(
+                self.ruler_size,
+                0,
+                w - self.ruler_size,
+                self.ruler_size)
+            self.v_ruler.setGeometry(
+                0,
+                self.ruler_size,
+                self.ruler_size,
+                h - self.ruler_size)
+            self.corner_box.move(0, 0)
 
         # Update Symmetry Guides
         if hasattr(self, 'symmetry'):
@@ -1034,75 +1144,10 @@ class PixelEditorWidget(QGraphicsView):
         return arr  # RGB order if format is RGB888
 
     # --- 6. EVENT HANDLERS (Delegated) ---
-    def mousePressEvent(self, event):
-        if event.button() == Qt.MouseButton.MiddleButton or self.current_tool == self.TOOL_PAN:
-            self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
-            super().mousePressEvent(event)
-            return
-
-        scene_pos = self.mapToScene(event.pos())
-
-        # Initialize Tool Logic (Robust Factory)
-        # Re-importing here is safe for hot-reloading but let's be robust
-        from sj_das.tools import (BrushTool, EllipseTool, FillTool, LassoTool,
-                                  LineTool, MagicWandTool, PanTool,
-                                  PerspectiveTool, PickerTool, RectSelectTool,
-                                  RectTool)
-        from sj_das.tools.advanced_brushes import AirbrushTool, SmudgeTool
-        from sj_das.tools.clone_stamp import CloneStampTool
-
-        tool_map = {
-            self.TOOL_BRUSH: BrushTool(self, is_eraser=False),
-            self.TOOL_ERASER: BrushTool(self, is_eraser=True),
-            self.TOOL_FILL: FillTool(self),
-            self.TOOL_RECT: RectTool(self),
-            self.TOOL_LINE: LineTool(self),
-            self.TOOL_SELECT_RECT: RectSelectTool(self),
-            self.TOOL_MAGIC_WAND: MagicWandTool(self),
-            self.TOOL_LASSO: LassoTool(self),
-            self.TOOL_PAN: PanTool(self),
-            self.TOOL_PICKER: PickerTool(self),
-            self.TOOL_PERSPECTIVE: PerspectiveTool(self),
-            self.TOOL_AIRBRUSH: AirbrushTool(self),
-            self.TOOL_CLONE: CloneStampTool(self),
-            self.TOOL_SMUDGE: SmudgeTool(self),
-            self.TOOL_ELLIPSE: EllipseTool(self)
-        }
-
-        tool_obj = tool_map.get(self.current_tool)
-
-        if tool_obj:
-            self.active_tool = tool_obj  # Keep reference
-            tool_obj.mouse_press(scene_pos, event.buttons())
-        else:
-            self.active_tool = None
-
-        # Prevent default Drag behavior interfering with tools
-        if self.current_tool != self.TOOL_PAN:
-            event.accept()
-        else:
-            super().mousePressEvent(event)
-
-    def mouseMoveEvent(self, event):
-        # Update Rulers
-        if hasattr(self, 'h_ruler'):
-            p = event.pos()
-            self.h_ruler.update_cursor_pos(p.x())
-            self.v_ruler.update_cursor_pos(p.y())
-
-        scene_pos = self.mapToScene(event.pos())
-        self.cursor_moved.emit(int(scene_pos.x()), int(scene_pos.y()))
-
-        # --- OPTIMIZATION START (QPainterPath Batched Updates) ---
-        if hasattr(self, 'active_tool') and self.active_tool:
-            # Use QTimer or accumulated events if lags (Future)
-            # For now, ensure we don't repaint unnecessarily
-            self.active_tool.mouse_move(scene_pos, event.buttons())
-
-        # Update Cursor Visuals
-        self._update_cursor_visual(scene_pos)
-
-        super().mouseMoveEvent(event)
+    # mousePressEvent is already defined above using Strategy Pattern.
+    # Legacy implementation removed to prevent conflicts.
+    # Implementation moved to primary handlers above.
+    # Legacy code removed.
 
     def leaveEvent(self, event):
         """Hide custom cursor when leaving canvas."""
@@ -1365,6 +1410,25 @@ class PixelEditorWidget(QGraphicsView):
     # --- 8. HELPERS ---
 
     def set_tool(self, tool_id):
+        # Handle string IDs from Mixins
+        if isinstance(tool_id, str):
+            tool_map = {
+                'clone': self.TOOL_CLONE,
+                'magic_wand': self.TOOL_MAGIC_WAND,
+                'text': self.TOOL_TEXT,
+                'brush': self.TOOL_BRUSH,
+                'eraser': self.TOOL_ERASER,
+                'fill': self.TOOL_FILL,
+                'picker': self.TOOL_PICKER,
+                'pan': self.TOOL_PAN,
+                'move': self.TOOL_PAN,      # 'move' maps to PAN logic here
+                'smudge': self.TOOL_SMUDGE,
+                'rect': self.TOOL_RECT,
+                'ellipse': self.TOOL_ELLIPSE,
+                'line': self.TOOL_LINE
+            }
+            tool_id = tool_map.get(tool_id, self.TOOL_BRUSH)
+
         self.current_tool = tool_id
         if tool_id == self.TOOL_PAN:
             self.setCursor(Qt.CursorShape.OpenHandCursor)

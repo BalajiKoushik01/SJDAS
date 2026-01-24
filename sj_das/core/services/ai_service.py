@@ -5,8 +5,8 @@ from typing import Any, Optional
 import numpy as np
 from PyQt6.QtCore import QObject, QThread, pyqtSignal
 
-from sj_das.ai.stable_diffusion_generator import get_sd_generator
-from sj_das.core.engines.llm.llama_engine import get_llama_engine
+from sj_das.ai.flux_generator import FluxGenerator
+from sj_das.core.engines.llm.local_llm_engine import get_local_llm_engine
 from sj_das.core.engines.vision.sam_engine import SAMEngine
 
 logger = logging.getLogger("SJ_DAS.AIService")
@@ -38,7 +38,7 @@ class AIWorker(QThread):
 class AIService(QObject):
     """
     Centralized Facade for all AI capabilities.
-    Implements Singleton pattern for resource management.
+    Implements Singleton pattern for free resource management.
     """
 
     # Signals for UI updates
@@ -64,66 +64,69 @@ class AIService(QObject):
 
     def __init__(self):
         super().__init__()
-        self._llama = None
-        self._sd = None
+        self.llm_engine = None
+        self._flux = None
         self._sam = None
-        self._whisper = None
-        self._active_workers = []  # Keep references
+        self._active_workers = []
 
     def initialize_core_models(self):
         """Pre-load essential models in background."""
         self.model_loading_started.emit("Initializing Core AI Models...")
-        # We can implement a warm-up sequence here if requested.
-        # For now, we rely on lazy loading to keep startup fast.
+        # Lazy loading preferred for performance
         logger.info("AIService initialized. Models will load on demand.")
 
     # --- LLM Capabilities ---
     def analyze_design(self, description: str,
                        image_context: Optional[str] = None):
         """Analyze design asynchronously."""
-        if not self._llama:
-            self._llama = get_llama_engine()
+        if not self.llm_engine:
+            self.llm_engine = get_local_llm_engine()
 
         # Check configuration
-        if not self._llama.is_configured():
-            # Try auto-configure
-            if not self._llama.configure(model_path=""):
-                self.error_occurred.emit(
-                    "Llama model not found. Please install Llama 3.2.")
-                self.task_error.emit(self.TASK_LLM, "Model missing")
-                return
+        if not self.llm_engine.is_configured():
+            if not self.llm_engine.configure(model_path=""):
+                # Fallback to Pure Python Engine
+                logger.warning("Native GGUF Engine failed. Trying Pure-Python Fallback...")
+                try:
+                    from sj_das.core.engines.llm.transformers_engine import get_transformers_engine
+                    self.llm_engine = get_transformers_engine()
+                    if not self.llm_engine.configure():
+                        raise ImportError("Transformers Fallback failed")
+                    logger.info("Switched to Transformers Engine (Pure Python).")
+                except Exception as e:
+                    self.error_occurred.emit(
+                        "AI Model Error: C++ Build Tools missing & Fallback failed.")
+                    self.task_error.emit(self.TASK_LLM, f"Model missing: {e}")
+                    return
 
         self.task_started.emit(self.TASK_LLM, "Analyzing Design...")
-        worker = AIWorker(self._llama.analyze_design,
+        worker = AIWorker(self.llm_engine.analyze_design,
                           f"{description}\nContext: {image_context or ''}")
         worker.finished.connect(self.analysis_completed.emit)
         worker.finished.connect(
             lambda: self.task_completed.emit(
                 self.TASK_LLM))
         worker.error.connect(self.error_occurred.emit)
-        worker.error.connect(
-            lambda e: self.task_error.emit(
-                self.TASK_LLM, str(e)))
         worker.start()
-        # Keep reference to avoid GC
         self._current_worker = worker
 
-    # --- Vision Capabilities ---
+    # --- Vision Capabilities (Switched to Flux) ---
     def generate_pattern(self, prompt: str, **kwargs):
-        """Generate pattern asynchronously."""
-        if not self._sd:
-            self._sd = get_sd_generator()
+        """Generate pattern using Flux.1 [schnell]."""
+        if not self._flux:
+            self._flux = FluxGenerator()
 
-        self.task_started.emit(self.TASK_GEN, f"Generating: {prompt[:20]}...")
-        worker = AIWorker(self._sd.generate, kwargs.get('params'))
+        self.task_started.emit(self.TASK_GEN, f"Flux Generating: {prompt[:20]}...")
+        
+        # Extract params or use raw prompt
+        params = kwargs.get('params', prompt)
+        
+        worker = AIWorker(self._flux.generate, params)
         worker.finished.connect(self.generation_completed.emit)
         worker.finished.connect(
             lambda: self.task_completed.emit(
                 self.TASK_GEN))
         worker.error.connect(self.error_occurred.emit)
-        worker.error.connect(
-            lambda e: self.task_error.emit(
-                self.TASK_GEN, str(e)))
         worker.start()
         self._current_worker = worker
 
@@ -132,8 +135,6 @@ class AIService(QObject):
         if not self._sam:
             self._sam = SAMEngine()
 
-        # We wrap the call. If point_coords provided, we use precise
-        # segmentation, else automatic.
         if point_coords:
             def task(): return self._sam.predict_mask(image, point_coords, point_labels)
         else:
@@ -146,18 +147,12 @@ class AIService(QObject):
             lambda: self.task_completed.emit(
                 self.TASK_VISION))
         worker.error.connect(self.error_occurred.emit)
-        worker.error.connect(
-            lambda e: self.task_error.emit(
-                self.TASK_VISION, str(e)))
         worker.start()
         self._current_worker = worker
 
     # --- Interactive Vision Tools (Magic Wand) ---
     def prepare_magic_wand(self, image: np.ndarray):
-        """
-        Pre-calculate image embeddings for instant segmentation.
-        This is a heavy operation (~2-5s on CPU).
-        """
+        """Pre-calculate image embeddings for instant segmentation."""
         if not self._sam:
             self._sam = SAMEngine()
 
@@ -165,7 +160,6 @@ class AIService(QObject):
             self.TASK_VISION,
             "Analyzing Image Structure...")
 
-        # Run embedding in background
         worker = AIWorker(self._sam.set_image, image)
         worker.finished.connect(
             lambda: self.task_completed.emit(
@@ -177,25 +171,17 @@ class AIService(QObject):
         self._active_workers.append(worker)
 
     def get_magic_wand_mask(self, x: int, y: int) -> Optional[np.ndarray]:
-        """
-        Instant segmentation from point.
-        Must call prepare_magic_wand first.
-        """
+        """Instant segmentation from point."""
         if not self._sam or not self._sam.is_ready:
             return None
         return self._sam.predict_click(x, y)
 
     # --- Enhancement Tools ---
     def upscale_image(self, image: np.ndarray, scale: int = 4):
-        """
-        Upscale image using Real-ESRGAN.
-        """
-        # Lazy import to avoid heavy dependency if unused
+        """Upscale image using Real-ESRGAN."""
         from sj_das.core.engines.enhancement.real_esrgan_upscaler import \
             RealESRGANUpscaler
 
-        # Note: We instantiate transiently or cache. For now transient is safer
-        # for VRAM.
         upscaler = RealESRGANUpscaler(scale=scale)
 
         self.task_started.emit(self.TASK_GEN, f"Upscaling {scale}x...")
@@ -209,22 +195,47 @@ class AIService(QObject):
         self._active_workers.append(worker)
 
     def inpaint_image(self, image, mask, prompt):
-        """Run Inpainting asynchronously."""
-        if not self._sd:
-            self._sd = get_sd_generator()
+        """Run Inpainting (Requires Flux Refactor or fallback to SD-Inpaint)."""
+        pass
 
-        self.task_started.emit(self.TASK_GEN, f"Inpainting: {prompt[:20]}...")
-        worker = AIWorker(self._sd.inpaint, image, mask, prompt)
+    # --- World Class Features (Phase 10) ---
+    def virtual_try_on(self, design_image: np.ndarray, pose="standing"):
+        """
+        Generate a photorealistic mockup of a model wearing the design.
+        """
+        from sj_das.ai.virtual_try_on import get_tryon_engine
+        
+        self.task_started.emit(self.TASK_GEN, f"Generating Virtual Try-On ({pose})...")
+        
+        def task():
+            engine = get_tryon_engine()
+            return engine.generate_mockup(design_image, pose)
+            
+        worker = AIWorker(task)
         worker.finished.connect(self.generation_completed.emit)
-        worker.finished.connect(
-            lambda: self.task_completed.emit(
-                self.TASK_GEN))
+        worker.finished.connect(lambda: self.task_completed.emit(self.TASK_GEN))
         worker.error.connect(self.error_occurred.emit)
-        worker.error.connect(
-            lambda e: self.task_error.emit(
-                self.TASK_GEN, str(e)))
         worker.start()
-        self._current_worker = worker
+        self._active_workers.append(worker)
+
+    def remove_background(self, image: np.ndarray):
+        """
+        Intelligent Background Removal (rembg).
+        """
+        from sj_das.ai.smart_eraser import get_smart_eraser
+        
+        self.task_started.emit(self.TASK_VISION, "Removing Background...")
+        
+        def task():
+            eraser = get_smart_eraser()
+            return eraser.remove_background(image)
+            
+        worker = AIWorker(task)
+        worker.finished.connect(self.generation_completed.emit)
+        worker.finished.connect(lambda: self.task_completed.emit(self.TASK_VISION))
+        worker.error.connect(self.error_occurred.emit)
+        worker.start()
+        self._active_workers.append(worker)
 
     def search_object(self, image: np.ndarray, query: str):
         """

@@ -1,0 +1,167 @@
+/* apple_glass.qss - Modern Apple-like Light Glass Theme */
+
+/* Global Reset & Base */
+QMainWindow, QDialog {
+    background-color: #f5f5f7; /* Apple System Gray 6 (Light) */
+    color: #1d1d1f; /* Apple Text Black */
+    font-family: "Segoe UI", "San Francisco", "Helvetica Neue", sans-serif;
+    font-size: 14px;
+}
+
+/* Glass Panels (High Transparency) */
+QFrame#rightPanels, QFrame#centerPanel, QFrame#toolStrip {
+    background-color: rgba(255, 255, 255, 0.75); /* Frosted Glass */
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-radius: 16px;
+    margin: 4px;
+}
+
+/* Specific styling for the Tool Strip */
+QFrame#toolStrip {
+    background-color: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 18px;
+    margin: 12px; /* Increased margin for even spacing */
+}
+
+/* Tab Bar */
+QTabWidget::pane {
+    border: none;
+    background: transparent;
+}
+QTabBar::tab {
+    background: transparent;
+    color: #86868b; /* Apple Text Secondary */
+    padding: 12px 20px; /* More breathing room */
+    border-bottom: 2px solid transparent;
+    font-weight: 500;
+}
+QTabBar::tab:selected {
+    color: #0071e3; /* Apple Blue */
+    border-bottom: 2px solid #0071e3;
+    font-weight: 600;
+}
+QTabBar::tab:hover {
+    color: #1d1d1f;
+    background-color: rgba(0, 0, 0, 0.03);
+    border-radius: 6px;
+}
+
+/* Tool Buttons */
+QToolButton {
+    background-color: transparent;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    padding: 8px; /* Larger hit area */
+    color: #1d1d1f;
+}
+QToolButton:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+QToolButton:checked {
+    background-color: rgba(0, 113, 227, 0.15); /* Apple Blue Tint */
+    border: 1px solid rgba(0, 113, 227, 0.3);
+    color: #0071e3;
+}
+QToolButton:pressed {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Standard Buttons */
+QPushButton {
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    color: #1d1d1f;
+    padding: 8px 20px;
+    font-weight: 500;
+}
+QPushButton:hover {
+    background-color: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    /* box-shadow removed, use native QGraphicsEffect if needed */
+}
+QPushButton:pressed {
+    background-color: #f5f5f7;
+}
+
+/* Inputs */
+QLineEdit, QTextEdit, QPlainTextEdit, QSpinBox {
+    background-color: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    color: #1d1d1f;
+    padding: 8px 12px;
+    selection-background-color: #0071e3;
+    selection-color: white;
+}
+QLineEdit:focus {
+    border: 1px solid #0071e3;
+    background-color: #ffffff;
+}
+
+/* List Widgets */
+QListWidget {
+    background-color: transparent;
+    border: none;
+    outline: none;
+}
+QListWidget::item {
+    padding: 10px;
+    border-radius: 8px;
+    color: #1d1d1f;
+    margin: 2px 0px; /* Space between items */
+}
+QListWidget::item:hover {
+    background-color: rgba(0, 0, 0, 0.03);
+}
+QListWidget::item:selected {
+    background-color: rgba(0, 113, 227, 0.1);
+    color: #0071e3;
+}
+
+/* Scrollbars - MacOS style */
+QScrollBar:vertical {
+    border: none;
+    background: transparent;
+    width: 10px; /* Slightly wider for usability */
+    margin: 0px;
+}
+QScrollBar::handle:vertical {
+    background: rgba(0, 0, 0, 0.2);
+    min-height: 30px;
+    border-radius: 5px;
+}
+QScrollBar::handle:vertical:hover {
+    background: rgba(0, 0, 0, 0.35);
+}
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0px; }
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background: transparent; }
+
+/* Menus */
+QMenu {
+    background-color: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    padding: 8px;
+}
+QMenu::item {
+    background-color: transparent;
+    padding: 8px 24px;
+    border-radius: 6px;
+    color: #1d1d1f;
+}
+QMenu::item:selected {
+    background-color: #0071e3;
+    color: white;
+}
+
+/* ToolTips */
+QToolTip {
+    background-color: rgba(255, 255, 255, 0.95);
+    color: #1d1d1f;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 6px;
+    padding: 6px;
+}

@@ -32,15 +32,15 @@ class ThemeManager(QObject):
         'dark': {
             'name': 'Dark',
             'colors': {
-                'bg_primary': '#0F172A',
-                'bg_secondary': '#1E293B',
-                'bg_elevated': '#334155',
-                'bg_hover': '#475569',
-                'border_subtle': '#334155',
+                'bg_primary': 'rgba(15, 23, 42, 0.60)',       # Glass Base
+                'bg_secondary': 'rgba(30, 41, 59, 0.50)',     # Panels
+                'bg_elevated': 'rgba(51, 65, 85, 0.60)',      # Hover/Popups
+                'bg_hover': 'rgba(71, 85, 105, 0.40)',
+                'border_subtle': 'rgba(255, 255, 255, 0.10)',
                 'border_accent': '#6366F1',
-                'text_primary': '#E2E8F0',
-                'text_secondary': '#94A3B8',
-                'text_muted': '#64748B',
+                'text_primary': '#F1F5F9',
+                'text_secondary': '#CBD5E1',
+                'text_muted': '#94A3B8',
                 'accent_primary': '#6366F1',
                 'accent_secondary': '#8B5CF6',
                 'success': '#10B981',
@@ -174,7 +174,8 @@ class ThemeManager(QObject):
         QWidget {{
             background-color: {colors['bg_primary']};
             color: {colors['text_primary']};
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: 'Inter', 'Segoe UI', 'San Francisco', Roboto, sans-serif;
+            font-size: 12px;
         }}
 
         QMainWindow {{
@@ -182,12 +183,13 @@ class ThemeManager(QObject):
         }}
 
         QPushButton {{
-            background-color: {colors['bg_elevated']};
+            background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {colors['bg_elevated']}, stop:1 {colors['bg_primary']});
             color: {colors['text_primary']};
             border: 1px solid {colors['border_subtle']};
             border-radius: 6px;
-            padding: 8px 16px;
+            padding: 8px 16px; /* Increased padding */
             font-weight: 500;
+            font-size: 12px;
         }}
 
         QPushButton:hover {{
@@ -210,7 +212,8 @@ class ThemeManager(QObject):
             color: {colors['text_primary']};
             border: 1px solid {colors['border_subtle']};
             border-radius: 4px;
-            padding: 6px 12px;
+            padding: 8px 12px; /* Increased padding */
+            font-size: 12px;
         }}
 
         QLineEdit:focus, QTextEdit:focus {{
@@ -223,6 +226,7 @@ class ThemeManager(QObject):
             border: 1px solid {colors['border_subtle']};
             border-radius: 4px;
             padding: 6px 12px;
+            font-size: 12px;
         }}
 
         QComboBox:hover {{
@@ -235,13 +239,13 @@ class ThemeManager(QObject):
 
         QScrollBar:vertical {{
             background-color: {colors['bg_secondary']};
-            width: 12px;
-            border-radius: 6px;
+            width: 14px; /* Wider scrollbar */
+            border-radius: 7px;
         }}
 
         QScrollBar::handle:vertical {{
             background-color: {colors['bg_hover']};
-            border-radius: 6px;
+            border-radius: 7px;
             min-height: 30px;
         }}
 
@@ -254,17 +258,25 @@ class ThemeManager(QObject):
             color: {colors['text_primary']};
             border: 1px solid {colors['border_subtle']};
             border-radius: 4px;
-            padding: 4px 8px;
+            padding: 6px 10px;
+            font-size: 11px;
         }}
 
         QMenuBar {{
             background-color: {colors['bg_secondary']};
             color: {colors['text_primary']};
             border-bottom: 1px solid {colors['border_subtle']};
+            font-size: 12px;
+            padding: 4px;
+        }}
+
+        QMenuBar::item {{
+            padding: 6px 12px;
         }}
 
         QMenuBar::item:selected {{
             background-color: {colors['bg_hover']};
+            border-radius: 4px;
         }}
 
         QMenu {{
@@ -272,6 +284,12 @@ class ThemeManager(QObject):
             color: {colors['text_primary']};
             border: 1px solid {colors['border_subtle']};
             border-radius: 6px;
+            padding: 4px;
+        }}
+
+        QMenu::item {{
+            padding: 6px 24px 6px 12px;
+            border-radius: 4px;
         }}
 
         QMenu::item:selected {{

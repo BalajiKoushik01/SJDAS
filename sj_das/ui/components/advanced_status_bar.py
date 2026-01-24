@@ -138,8 +138,22 @@ class AdvancedStatusBar(QStatusBar):
         self.memory_label.setStyleSheet("color: #94A3B8; font-size: 11px;")
         self.addPermanentWidget(self.memory_label)
 
-        # Make status bar more compact
-        self.setMaximumHeight(28)  # Reduced from default ~32px
+        # Make status bar more compact and floating style
+        self.setMaximumHeight(36)
+        
+        # Transparent background for floating effect (handled by MainWindow containerusually, 
+        # but here we style the content widgets to look like pills)
+        self.setStyleSheet("QStatusBar { background: transparent; border: none; }")
+
+        # Style individual sections as capsules if needed, or keeping it clean flat
+        self.tool_name_label.setStyleSheet("""
+            background-color: #334155; 
+            color: #F8FAFC; 
+            padding: 4px 12px; 
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 11px;
+        """)
 
     def set_tool_info(self, tool_name: str, icon=None):
         """Update tool information display."""

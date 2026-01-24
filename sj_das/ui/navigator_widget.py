@@ -24,7 +24,7 @@ class NavigatorWidget(QWidget):
         painter = QPainter(self)
         painter.fillRect(self.rect(), QColor(50, 50, 50))
 
-        if self.editor.mask_image:
+        if hasattr(self.editor, 'mask_image') and self.editor.mask_image:
             # Draw scaled preview
             # We cache this ideally, but for now just scale on fly (cheap for 200px)
             # Actually, better to use cached pixmap if mask doesn't change often.

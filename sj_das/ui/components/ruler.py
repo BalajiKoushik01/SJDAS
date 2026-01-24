@@ -35,16 +35,19 @@ class Ruler(QWidget):
     def paintEvent(self, event):
         """Paint the ruler"""
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-
-        # Background
-        painter.fillRect(self.rect(), self.bg_color)
-
-        # Draw ruler markings
-        if self.orientation == self.HORIZONTAL:
-            self.draw_horizontal_ruler(painter)
-        else:
-            self.draw_vertical_ruler(painter)
+        try:
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    
+            # Background
+            painter.fillRect(self.rect(), self.bg_color)
+    
+            # Draw ruler markings
+            if self.orientation == self.HORIZONTAL:
+                self.draw_horizontal_ruler(painter)
+            else:
+                self.draw_vertical_ruler(painter)
+        finally:
+            painter.end()
 
     def draw_horizontal_ruler(self, painter):
         """Draw horizontal ruler"""

@@ -13,7 +13,7 @@ from sj_das.tools.base import Tool
 logger = logging.getLogger(__name__)
 
 
-class CloneStampTool(Tool):
+class CloneTool(Tool):
     """
     Professional clone stamp tool for textile design.
 

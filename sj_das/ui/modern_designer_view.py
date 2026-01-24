@@ -183,9 +183,16 @@ class PremiumDesignerView(QWidget, DesignerViewPSPMethods):
         self.model_manager = ModelManager()
         self.generation_thread = None
 
+        # Phase 9: Initialize Canvas Controller (MVC) -> Moved UP to fix init_ui crash
+        from sj_das.controllers.canvas_controller import CanvasController
+        self.controller = CanvasController(self)
+
         logger.info("Features ready, building UI...")
         # Initialize UI Layout (Critical for visibility)
         self.init_ui()
+        
+        # Initialize Default Canvas (Prevent Black Void)
+        self.editor.create_blank_canvas(1200, 1600) # Sensible default
 
         # Phase 15: Cortex & OmniBar
         from sj_das.core.cortex.orchestrator import CortexOrchestrator
@@ -198,11 +205,9 @@ class PremiumDesignerView(QWidget, DesignerViewPSPMethods):
         self.omni_bar = OmniBar(self)
         self.omni_bar.command_entered.connect(self.cortex.think)
         self.cortex.thought_updated.connect(self.omni_bar.set_status)
+        self.omni_bar.move(400, 100) # Default position (away from top-left)
         self.omni_bar.show()
-
-        # Phase 9: Initialize Canvas Controller (MVC)
-        from sj_das.controllers.canvas_controller import CanvasController
-        self.controller = CanvasController(self)
+        self.omni_bar.raise_()
 
         # Phase 12: Connect AI Tools
         if hasattr(self.editor, 'canvas_clicked'):
@@ -213,6 +218,22 @@ class PremiumDesignerView(QWidget, DesignerViewPSPMethods):
         QTimer.singleShot(3000, self.fetch_daily_quote)
 
         logger.info("Premium Photoshop-quality UI initialized!")
+
+    def resizeEvent(self, event):
+        """Handle resize to center OmniBar at bottom."""
+        if hasattr(self, 'omni_bar') and self.omni_bar:
+            # Position at bottom center ONLY if not manually moved
+            if not self.omni_bar.is_manually_moved:
+                width = self.omni_bar.width()
+                height = self.omni_bar.height()
+                
+                x = (self.width() - width) // 2
+                y = self.height() - height - 40 # 40px margin from bottom
+                
+                self.omni_bar.move(x, y)
+                self.omni_bar.raise_()
+            
+        super().resizeEvent(event)
 
     def fetch_daily_quote(self):
         """Fetch daily quote from cloud."""
@@ -374,6 +395,11 @@ class PremiumDesignerView(QWidget, DesignerViewPSPMethods):
                 self.editor.setPixmap(pixmap)
 
             self.current_image_path = file_path
+            
+            # Switch to Editor View
+            if hasattr(self, 'canvas_stack'):
+                self.canvas_stack.setCurrentIndex(1)
+            
             self.hide_loading()
             self.show_notification(f"Loaded: {os.path.basename(file_path)}")
 
@@ -397,6 +423,9 @@ class PremiumDesignerView(QWidget, DesignerViewPSPMethods):
             return
 
         self.controller.new_canvas(width, height)
+        # Switch to Editor View
+        if hasattr(self, 'canvas_stack'):
+            self.canvas_stack.setCurrentIndex(1)
 
     @safe_slot
     def save_file(self):
@@ -784,6 +813,12 @@ class PremiumDesignerView(QWidget, DesignerViewPSPMethods):
         dialog.exec()
 
     # ==================== HELP & SHORTCUTS ====================
+
+    @safe_slot
+    def show_about_dialog(self):
+        """Show Premium About Dialog."""
+        from sj_das.ui.dialogs.about_dialog import AboutDialog
+        AboutDialog(self).exec()
 
     @safe_slot
     def show_shortcuts(self):
@@ -1279,8 +1314,31 @@ class PremiumDesignerView(QWidget, DesignerViewPSPMethods):
         mid_row.addWidget(self.ruler_v)
         mid_row.addWidget(self.editor)
         grid_layout.addLayout(mid_row)
+        
+        # Grid Container Widget
+        self.grid_container = QWidget()
+        self.grid_container.setLayout(grid_layout)
 
-        canvas_area_layout.addLayout(grid_layout)
+        # --- STACKED CANVAS AREA ---
+        from PyQt6.QtWidgets import QStackedWidget
+        from sj_das.ui.components.welcome_widget import WelcomeWidget
+        
+        self.canvas_stack = QStackedWidget()
+        
+        # Page 0: Welcome Screen
+        self.welcome_widget = WelcomeWidget()
+        self.welcome_widget.action_new.connect(self.new_file)
+        self.welcome_widget.action_open.connect(self.import_image)
+        # self.welcome_widget.action_recent.connect(self.open_file) 
+        self.canvas_stack.addWidget(self.welcome_widget)
+        
+        # Page 1: Editor
+        self.canvas_stack.addWidget(self.grid_container)
+        
+        # Default to Welcome
+        self.canvas_stack.setCurrentIndex(0)
+
+        canvas_area_layout.addWidget(self.canvas_stack)
         content_splitter.addWidget(canvas_area)
 
         # 3. Right: Properties
@@ -1308,10 +1366,18 @@ class PremiumDesignerView(QWidget, DesignerViewPSPMethods):
         self.tool_options_bar = QFrame()
         self.tool_options_bar.setObjectName("toolOptionsBar")
         self.tool_options_bar.setFixedHeight(50)
+        
+        # Dynamic Glass Style via ThemeManager
+        from sj_das.ui.theme_manager import ThemeManager
+        tm = ThemeManager()
+        c = tm.get_all_colors()
+        
+        # Glassmorphism Style
         self.tool_options_bar.setStyleSheet(f"""
             QFrame#toolOptionsBar {{
-                background-color: {COLORS['bg_primary']};
-                border-bottom: 2px solid {COLORS['border_accent']};
+                background-color: {c['bg_secondary']}; 
+                border-bottom: 1px solid {c['border_subtle']};
+                border-top: 1px solid {c['bg_elevated']};
             }}
         """)
 
@@ -1322,6 +1388,24 @@ class PremiumDesignerView(QWidget, DesignerViewPSPMethods):
         # Use Builder
         builder = StandardMenuBuilder(self, layout)
         builder.build_all()
+
+        # --- Grid Size Control ---
+        from qfluentwidgets import SpinBox
+        self.grid_spin = SpinBox(self.tool_options_bar)
+        self.grid_spin.setRange(1, 100)
+        self.grid_spin.setValue(1) 
+        self.grid_spin.setPrefix("Grid: ")
+        self.grid_spin.setSuffix("px")
+        self.grid_spin.setFixedWidth(120)
+        self.grid_spin.setToolTip("Adjust Grid Spacing")
+        
+        def update_grid(val):
+            if hasattr(self, 'editor'):
+                self.editor.grid_spacing = val
+                self.editor.viewport().update()
+                
+        self.grid_spin.valueChanged.connect(update_grid)
+        layout.addWidget(self.grid_spin)
 
         # --- Simulate Button ---
         from qfluentwidgets import FluentIcon as FIF
@@ -1406,6 +1490,70 @@ class PremiumDesignerView(QWidget, DesignerViewPSPMethods):
             self.controller.activate_magic_wand()
             self.show_notification("Magic Wand Active: Click object to select")
 
+    # ==========================
+    # FEATURE WRAPPERS (Integration)
+    # ==========================
+    @safe_slot
+    def show_curves(self):
+        if hasattr(self, 'feat_curves'): self.feat_curves.show_dialog()
+
+    @safe_slot
+    def show_levels(self):
+         # Histogram/Levels
+        if hasattr(self, 'feat_hist'): self.feat_hist.show_dialog()
+
+    @safe_slot
+    def show_channel_mixer(self):
+        if hasattr(self, 'feat_mixer'): self.feat_mixer.show_dialog()
+
+    @safe_slot
+    def show_hsl(self):
+        if hasattr(self, 'feat_hsl'): self.feat_hsl.show_dialog()
+
+    @safe_slot
+    def show_posterize(self):
+        if hasattr(self, 'feat_posterize'): self.feat_posterize.show_dialog()
+        
+    @safe_slot
+    def show_threshold(self):
+        if hasattr(self, 'feat_thresh'): self.feat_thresh.show_dialog()
+
+    @safe_slot
+    def show_vignette(self):
+        if hasattr(self, 'feat_vignette'): self.feat_vignette.show_dialog()
+
+    @safe_slot
+    def show_film_grain(self):
+        if hasattr(self, 'feat_grain'): self.feat_grain.show_dialog()
+
+    @safe_slot
+    def show_noise_reduction(self):
+        if hasattr(self, 'feat_noise'): self.feat_noise.show_dialog()
+
+    @safe_slot
+    def show_pixelate(self):
+        if hasattr(self, 'feat_pixel'): self.feat_pixel.show_dialog()
+        
+    @safe_slot
+    def show_emboss(self):
+        if hasattr(self, 'feat_emboss'): self.feat_emboss.show_dialog()
+        
+    @safe_slot
+    def show_halftone(self):
+        if hasattr(self, 'feat_halftone'): self.feat_halftone.show_dialog()
+
+    @safe_slot
+    def show_motif_repeater(self):
+        if hasattr(self, 'feat_repeat'): self.feat_repeat.show_dialog()
+
+    @safe_slot
+    def toggle_symmetry(self):
+        if hasattr(self, 'feat_sym'): self.feat_sym.toggle_symmetry()
+
+    @safe_slot
+    def show_solarize(self):
+        if hasattr(self, 'feat_solarize'): self.feat_solarize.show_dialog()
+
     def start_fabric_simulation(self):
         """Triggers the Fabric Reality engine."""
         img = self.editor.get_image()
@@ -1422,9 +1570,12 @@ class PremiumDesignerView(QWidget, DesignerViewPSPMethods):
             return
 
         # Prepare Data
-        # 1. Convert QImage to Numpy
+        # 1. Convert QImage to Numpy (Robust)
+        if img.format() != QImage.Format.Format_RGBA8888:
+            img = img.convertToFormat(QImage.Format.Format_RGBA8888)
+            
         ptr = img.bits()
-        ptr.setsize(img.sizeInBytes())
+        ptr.setsize(img.height() * img.width() * 4)
         arr = np.array(ptr).reshape(img.height(), img.width(), 4)
         # Drop Alpha for simulation
         img_bgr = cv2.cvtColor(arr, cv2.COLOR_RGBA2BGR)
@@ -1539,9 +1690,12 @@ class PremiumDesignerView(QWidget, DesignerViewPSPMethods):
                 parent=self)
             return
 
-        # Convert QImage to BGR for dialog
+        # Convert QImage to Numpy (Robust)
+        if img.format() != QImage.Format.Format_RGBA8888:
+            img = img.convertToFormat(QImage.Format.Format_RGBA8888)
+
         ptr = img.bits()
-        ptr.setsize(img.sizeInBytes())
+        ptr.setsize(img.height() * img.width() * 4)
         arr = np.array(ptr).reshape(img.height(), img.width(), 4)
         img_bgr = cv2.cvtColor(arr, cv2.COLOR_RGBA2BGR)
 
@@ -1604,21 +1758,20 @@ class PremiumDesignerView(QWidget, DesignerViewPSPMethods):
     def on_tool_selected(self, tool_id):
         """Handle tool selection with smooth feedback"""
         # Uncheck all tools
-        for btn in self.tool_buttons.values():
-            btn.setChecked(False)
+        if hasattr(self, 'tool_buttons'):
+            for btn in self.tool_buttons.values():
+                btn.setChecked(False)
 
-        # Check selected tool
-        if tool_id in self.tool_buttons:
-            self.tool_buttons[tool_id].setChecked(True)
+            # Check selected tool
+            if tool_id in self.tool_buttons:
+                self.tool_buttons[tool_id].setChecked(True)
 
         # Update status bar
         if hasattr(self, 'status_bar'):
             self.status_bar.set_tool_info(f"Tool: {tool_id.title()}")
 
-        # Map to editor tools via Factory
-        editor_tool = ToolbarFactory.get_editor_tool_id(tool_id)
-        if editor_tool is not None:
-            self.editor.current_tool = editor_tool
+        # Direct set via robust set_tool (handles strings and ints)
+        self.editor.set_tool(tool_id)
 
         # --- MIXIN HOOKS (PSP Features) ---
         if tool_id == 'magic_wand':
@@ -2187,9 +2340,12 @@ class PremiumDesignerView(QWidget, DesignerViewPSPMethods):
     def handle_tool_action(self, tool_id):
         """Handle actions from Acrylic Toolbar."""
         logger.info(f"Tool Triggered: {tool_id}")
-        if tool_id == "magic_wand":
-            self.enable_magic_wand()
-        elif tool_id == "upscale":
+        
+        # Delegate to central tool handler
+        self.on_tool_selected(tool_id)
+
+        # Handle special non-tool actions
+        if tool_id == "upscale":
             self.controller.start_upscaling()
         elif tool_id == "met":
             self.open_inspiration_dialog()
