@@ -27,7 +27,7 @@ except ImportError as e:
     get_procedural_generator = None
 
 # Import Routers
-from backend.routers import jules
+from backend.routers import jules, auth, decode, export
 
 
 app = FastAPI(
@@ -44,6 +44,9 @@ app.add_middleware(
 )
 
 app.include_router(jules.router, prefix="/jules", tags=["Jules"])
+app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
+app.include_router(decode.router, prefix="/api/v1", tags=["Analysis"])
+app.include_router(export.router, prefix="/api/v1", tags=["Export"])
 
 
 

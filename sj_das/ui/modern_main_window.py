@@ -18,6 +18,7 @@ from sj_das.core.services.ai_service import AIService
 from sj_das.ui.assembler_view import AssemblerView
 from sj_das.ui.digital_twin_view import DigitalTwinView
 from sj_das.ui.modern_designer_view import PremiumDesignerView
+from sj_das.ui.dialogs.cloud_login_dialog import CloudLoginDialog
 from sj_das.utils.logger import logger
 
 
@@ -58,6 +59,8 @@ class ModernMainWindow(FluentWindow):
 
         # 5. Licensing Check (Post-UI load)
         QTimer.singleShot(1000, self._check_license)
+        # 6. Cloud Login Prompt
+        QTimer.singleShot(2000, self._prompt_cloud_login)
 
         logger.info("ModernMainWindow initialized.")
 
@@ -229,6 +232,14 @@ class ModernMainWindow(FluentWindow):
                 "Trial Mode",
                 f"Unlicensed copy. ID: {mgr.machine_id}",
                 type="warning")
+
+    def _prompt_cloud_login(self):
+        """Prompt user to authenticate with SJDAS Cloud Backend."""
+        dialog = CloudLoginDialog(self)
+        dialog.login_success.connect(
+            lambda: self._show_notification("Connected", "Successfully authenticated with SJDAS Cloud.", type="success")
+        )
+        dialog.exec()
 
     # --- Utility ---
 

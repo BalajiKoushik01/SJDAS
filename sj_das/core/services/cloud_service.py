@@ -13,14 +13,25 @@ class CloudWorker(QThread):
     finished = pyqtSignal(object)  # Dict or Bytes
     error = pyqtSignal(str)
 
-    def __init__(self, url: str):
+    def __init__(self, url: str, method: str = 'GET', data: dict = None, headers: dict = None, as_json: bool = False):
         super().__init__()
         self.url = url
+        self.method = method
+        self.data = data
+        self.headers = headers or {}
+        self.as_json = as_json
 
     def run(self):
         try:
             # Increased timeout for GenAI
-            response = requests.get(self.url, timeout=30)
+            if self.method.upper() == 'POST':
+                if self.as_json:
+                    response = requests.post(self.url, json=self.data, headers=self.headers, timeout=30)
+                else:
+                    response = requests.post(self.url, data=self.data, headers=self.headers, timeout=30)
+            else:
+                response = requests.get(self.url, headers=self.headers, timeout=30)
+                
             response.raise_for_status()
 
             # Smart Content Type Handling
@@ -51,17 +62,53 @@ class CloudService(QObject):
     met_object_details = pyqtSignal(dict)  # Object details with image url
     quote_received = pyqtSignal(dict)  # {text, author}
     request_failed = pyqtSignal(str)
+    
+    # New Signals for JWT Auth
+    login_successful = pyqtSignal(str)
+    login_failed = pyqtSignal(str)
 
     def __init__(self):
         super().__init__()
         self._cache = {}  # Simple in-memory cache
         self.active_workers = []  # Keep refs
+        self.api_base_url = "http://127.0.0.1:8000"
+        self.jwt_token = None
 
     @staticmethod
     def instance() -> 'CloudService':
         if CloudService._instance is None:
             CloudService._instance = CloudService()
         return CloudService._instance
+
+    def _get_auth_headers(self):
+        if self.jwt_token:
+            return {"Authorization": f"Bearer {self.jwt_token}"}
+        return {}
+
+    def login(self, username, password):
+        """Authenticate with the SJDAS Backend."""
+        url = f"{self.api_base_url}/api/v1/auth/token"
+        data = {
+            "username": username,
+            "password": password
+        }
+        # OAuth2 token endpoint requires form data, not JSON
+        worker = CloudWorker(url, method='POST', data=data, as_json=False)
+        worker.finished.connect(self._handle_login_success)
+        worker.error.connect(self._handle_login_error)
+        worker.start()
+        self.active_workers.append(worker)
+
+    def _handle_login_success(self, data):
+        if isinstance(data, dict) and "access_token" in data:
+            self.jwt_token = data["access_token"]
+            self.login_successful.emit(self.jwt_token)
+        else:
+            self.login_failed.emit("Invalid response format from server.")
+
+    def _handle_login_error(self, error_msg):
+        self.login_failed.emit(error_msg)
+
 
     def identify_color(self, hex_code: str):
         """
