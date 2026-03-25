@@ -1,7 +1,7 @@
 # SJDAS v2.0: Autonomous Textile Jacquard Studio
-**The "Zero-Labor" B2B SaaS for Modern Power Looms**
+**The Ultimate Power Loom Editor: PyQt6 Desktop Core + Cloud AI Extensions**
 
-SJDAS v2.0 is an enterprise-grade, cloud-native Textile Design Studio built to bridge the gap between human creativity and rigid mechanical loom constraints. By leveraging AI (SAM 2, Hugging Face Real-ESRGAN, K-Means Quantization) and mathematical matrix generation (OpenCV, Supabase), SJDAS autonomously outputs 100% production-ready 8-bit Indexed Color BMPs and JC5 machine files directly to industrial Jacquard looms.
+SJ-DAS is an enterprise-grade Textile Design Studio built to bridge the gap between human creativity and rigid mechanical loom constraints. By combining a blazing-fast local PyQt6 desktop architecture with asynchronous cloud AI workers, SJDAS outputs 100% production-ready 8-bit Indexed Color BMPs and JC5 machine files directly to industrial Jacquard looms.
 
 ---
 
@@ -12,79 +12,114 @@ GitHub: [BalajiKoushik01](https://github.com/BalajiKoushik01)
 
 ---
 
-## 🏗️ Architecture Stack
+## 🏗️ Architecture Stack: The Hybrid Approach
 
-### Frontend (The Midnight Industrial Studio)
-- **Framework:** Next.js 15 (App Router)
-- **Editor:** Fabric.js (Strict `useRef` isolation for massive 12,000x8000px canvases)
-- **State Management:** Zustand (for non-blocking UI interactions)
-- **Styling & UI:** Tailwind CSS v4, shadcn/ui
-- **Animations:** Framer Motion (Liquid UI transitions and WebSockets progress streaming)
+### 1. The Core Desktop Engine (v1.0 + v2.0 Upgrades)
+- **Framework:** PyQt6 & QFluentWidgets for a professional, standalone Windows/macOS desktop application.
+- **Design Patterns:** Factory Pattern (UI Components), Command Pattern (Undo/Redo), Observer Pattern.
+- **Math Engine:** OpenCV (Non-Linear Trapezoidal Kali Warping strictly using `cv2.INTER_NEAREST`).
+- **Compilation:** Pillow `P` mode (0-compression 8-bit Strict Palette hardware exporting to bypass Windows CE loom limits).
 
-### Backend (The Autonomous Workers)
-- **API Engine:** FastAPI (Python)
-- **Async Pipeline:** Celery + Redis (Handling massive NumPy matrix computations off the main thread)
-- **Live Sync:** WebSockets (`/ws/progress/{task_id}`) for 0ms UI progress updates
-- **Math Engine:** OpenCV (Non-Linear Trapezoidal Kali Warping via `cv2.INTER_NEAREST`)
-- **Compilation:** Pillow `P` mode (Zero-compression 8-bit Strict Palette hardware exporting)
+### 2. The Asynchronous Cloud Labor (FastAPI + Celery)
+To prevent freezing the desktop UI during massive 12,000x8000px matrix calculations, heavy lifting is piped to an asynchronous cloud stack:
+- **API Engine:** FastAPI
+- **Background Workers:** Celery + Redis
+- **Live Sync:** WebSockets (`/ws/progress/{task_id}`) streaming 0ms UI progress back to the client.
 
-### Database & Auth (Multi-Tenant Scale)
+### 3. The B2B Web Portal (Next.js 15)
+An enterprise web-dashboard (`web/`) built with React (Fabric.js), Zustand, and Tailwind CSS. Offers "Midnight Industrial" access to cloud sync, AI tracing (SAM 2), and remote factory management.
+
+### 4. Database & Auth (Multi-Tenant Scale)
 - **Platform:** Supabase (PostgreSQL)
-- **Security:** Strict Row Level Security (RLS) policies guaranteeing exact `factory_id` tenant isolation
-- **Feature Set:** `loom_profiles` (Hardware Constraints) and `thread_inventory` (Physical stock counts)
-- **Storage:** Private Supabase Buckets mapped to `factory_id` for proprietary Zero-Scrape IP protection.
+- **Security:** Strict Row Level Security (RLS) guaranteeing exact `factory_id` tenant isolation.
 
 ---
 
-## ⚙️ Core Modules & Capabilities
+## ✨ Features & Upgrades
 
-### 1. The Kali-Warp Processing Engine (Multi-Panel Output)
-SJDAS mathematically stretches and tapers motifs (using OpenCV `getPerspectiveTransform` and `INTER_NEAREST`) to construct **Multi-Panel (Kali)** designs. The backend smoothly stitches up to 12 Kalis into a single giant NumPy array seamlessly.
+### 🎨 Professional Editor Tools
+- Selection (Lasso, Magic Wand), Drawing (Brush, Clone Stamp), Auto-Seamless Repeat.
+- **Smart Recolor & Factory Stock API:** Calculates CIEDE2000 Delta-E distance between a design's colors and the factory's physical thread inventory (stored in Supabase). 
 
-### 2. Factory Stock API (CIEDE2000 Delta-E Matching)
-The system calculates the Euclidean distance between a design's colors and the factory's physical thread inventory stored in Supabase. It features an interactive "Traffic Light" UI (`FactoryStockSidebar.tsx`) that alerts designers if they draw with colors representing threads that are out of stock.
+### 🧠 MiniMax M2.1 AI Integration
+Advanced LLM optimized for intelligent design assistance.
+- Intelligent Design Analysis (motif types, color harmony, weave structures).
+- Conversational AI Assistant (natural language querying for design feasibility).
 
-### 3. Asynchronous "Shadow Canvas" (Float Guardian)
-The React UI stays silky smooth because heavy math (SAM 2 AI Tracing, Hugging Face Denoising) runs via Celery Background Workers. 
-
-### 4. Zero-Aliasing Machine Export
-Directly exports 8-bit Indexed Color `saree_production_file.bmp` files with strict 768-integer pallet headers, completely compliant with Stäubli and Bonas loom interfaces.
+### 📐 The Kali-Warp Processing Engine (Multi-Panel Output)
+Mathematically stretches and tapers motifs (using OpenCV) to construct Multi-Panel (Kali) designs, smoothly stitching up to 12 Kalis into a single giant NumPy array seamlessly.
 
 ---
 
-## 🚀 Setup & Installation
+## 🚀 Quick Start
 
-### 1. Requirements
-- Node.js 18+
-- Python 3.10+
-- Redis Server (Native or Docker)
-- Supabase Project
+### Prerequisites
+- Python 3.13+
+- Windows 10/11 (primary)
+- 8GB RAM minimum, 16GB recommended
+- Redis Server (for FastAPI background workers)
 
-### 2. Next.js Frontend Initialization
+### 1. Desktop Application Setup
+
+```bash
+git clone https://github.com/BalajiKoushik01/SJDAS.git
+cd SJDAS
+
+python -m venv venv
+venv\Scripts\activate
+
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
+
+# Launch application (CORRECT ENTRY POINT)
+python launcher.py
+```
+
+### 2. FastAPI Background Workers Setup
+```bash
+cd backend
+pip install -r requirements.txt
+
+# Terminal 1: Start Redis
+redis-server
+
+# Terminal 2: Start Web Server
+uvicorn main:app --reload --port 8000
+
+# Terminal 3: Start Celery
+celery -A tasks worker --loglevel=info
+```
+
+### 3. Next.js Web Portal Setup
 ```bash
 cd web
 npm install
 npm run dev
 ```
 
-### 3. FastAPI Backend Initialization
+---
+
+## 🧪 Testing & Code Quality
+
 ```bash
-cd backend
-pip install -r requirements.txt
+# Run all tests with coverage
+pytest tests/ -v --cov=sj_das --cov-report=html
 
-# Terminal 1: Start Redis (if Unix/Docker)
-redis-server
-
-# Terminal 2: Start FastAPI Web Server
-uvicorn main:app --reload --port 8000
-
-# Terminal 3: Start Celery Background Workers
-celery -A tasks worker --loglevel=info
+# Type checking & Linting
+mypy sj_das/utils sj_das/core
+ruff check sj_das/ --fix
 ```
-
-### 4. Database Setup
-Apply the `backend/db/001_rls_migration.sql` to your Supabase project's SQL Editor to establish all tables, auth functions, and RLS policies.
+*Current Coverage: 100% on `geometry_utils`, `commands`, and core utilities.*
 
 ---
 
-*Engineered for performance, designed for creativity. SJDAS v2.0.*
+## 🏭 Loom Integration
+
+### Supported Formats
+- **BMP Export**: Industry-standard Jacquard format (8-bit indexed, 0-compression)
+- **Hook Configuration**: 1000-4000+ hooks supported
+- **Color Depth**: 2-256 colors (loom-dependent)
+
+---
+
+**Built with ❤️ for the textile industry**
