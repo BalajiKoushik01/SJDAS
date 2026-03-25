@@ -1,306 +1,90 @@
-# SJ-DAS: Smart Jacquard Design Automation System
+# SJDAS v2.0: Autonomous Textile Jacquard Studio
+**The "Zero-Labor" B2B SaaS for Modern Power Looms**
 
-[![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
-[![PyQt6](https://img.shields.io/badge/PyQt-6.10-green.svg)](https://www.riverbankcomputing.com/software/pyqt/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
-[![Type checked: mypy](https://img.shields.io/badge/type%20checked-mypy-blue.svg)](http://mypy-lang.org/)
-[![Tests: pytest](https://img.shields.io/badge/tests-pytest-orange.svg)](https://pytest.org/)
-
-**Professional-grade desktop application for automating Jacquard loom design workflows with AI-powered pattern generation.**
-
-## 🎯 Overview
-
-SJ-DAS transforms traditional textile design workflows by combining computer vision, AI pattern generation, and loom-specific automation into a single, intuitive desktop application. Built with enterprise-level architecture patterns and comprehensive testing.
-
-### Key Features
-
-- **🎨 Advanced Pixel Editor**: Photoshop-quality editing with undo/redo, layers, and professional tools
-- **🤖 AI Pattern Generation**: StyleGAN2-ADA powered design synthesis and variations
-- **🧠 MiniMax M2.1 AI**: Intelligent design analysis, recommendations, and conversational assistance
-- **🧵 Yarn & Weave Management**: Industry-standard color palettes and weave structure libraries
-- **🏭 Loom Export**: Direct BMP export for Jacquard looms (Udayravi Creations compatible)
-- **✂️ Auto-Segmentation**: Computer vision-based design region detection (body/border/pallu)
-- **🔍 Smart Analysis**: Pattern complexity analysis and design validation
-- **🎭 Real-time Preview**: Seamless texture preview and weave simulation
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Python 3.13+
-- Windows 10/11 (primary), macOS/Linux (experimental)
-- 8GB RAM minimum, 16GB recommended
-- NVIDIA GPU (optional, for AI features)
-
-### Installation
-
-```bash
-# Clone repository
-git clone https://github.com/BalajiKoushik01/SJDAS.git
-cd SJDAS
-
-# Create virtual environment
-python -m venv venv
-venv\Scripts\activate  # Windows
-# source venv/bin/activate  # macOS/Linux
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Install development tools (optional)
-pip install -r requirements-dev.txt
-
-# Launch application (CORRECT ENTRY POINT)
-python launcher.py
-```
-
-> **Note**: Use `launcher.py` as the entry point, not `sj_das/main.py` (which is deprecated and archived).
-
-## ✨ Recent Updates (2025-12-29)
-
-### Bug Fixes & Improvements
-- ✅ Fixed 9 critical bugs preventing application launch
-- ✅ Added missing UI methods (rotate, flip, quantize, upscale)
-- ✅ Fixed AI Pattern Generator widget initialization
-- ✅ Removed duplicate code and improved organization
-- ✅ Comprehensive integration testing (all tests passed)
-
-See [`INTEGRATION_TEST_REPORT.md`](INTEGRATION_TEST_REPORT.md) for detailed verification results.
-
-## 📁 Project Structure
-
-```
-sj_das_project/
-├── sj_das/
-│   ├── ai/                    # AI/ML modules (StyleGAN2, segmentation)
-│   ├── core/                  # Core business logic
-│   │   ├── exceptions.py      # Custom exception hierarchy
-│   │   ├── loom_exporter.py   # BMP export engine
-│   │   └── weave_manager.py   # Weave pattern management
-│   ├── ui/
-│   │   ├── components/        # Reusable UI components
-│   │   │   ├── menu_builder.py
-│   │   │   ├── panel_factory.py
-│   │   │   └── toolbar_factory.py
-│   │   ├── features/          # Feature modules (AI, recolor, etc.)
-│   │   ├── commands.py        # Command pattern (undo/redo)
-│   │   ├── editor_widget.py   # Core pixel editor
-│   │   └── infrastructure.py  # UI utilities (@safe_slot)
-│   └── utils/
-│       └── geometry_utils.py  # Math utilities (Bresenham, etc.)
-├── tests/
-│   ├── unit/                  # Unit tests (100% coverage on core)
-│   └── integration/           # Integration tests
-├── launcher.py                # Application entry point
-├── pyproject.toml            # Tool configuration (pytest, ruff)
-├── mypy.ini                  # Type checking configuration
-└── requirements-dev.txt      # Development dependencies
-```
-
-## 🧪 Testing
-
-```bash
-# Run all tests with coverage
-pytest tests/ -v --cov=sj_das --cov-report=html
-
-# Run unit tests only
-pytest tests/unit/ -v
-
-# Run specific test file
-pytest tests/unit/test_geometry_utils.py -v
-
-# View coverage report
-# Open htmlcov/index.html in browser
-```
-
-**Current Coverage**: 100% on `geometry_utils`, `commands`, and core utilities.
-
-## 🛠️ Development
-
-### Code Quality Tools
-
-```bash
-# Type checking
-mypy sj_das/utils sj_das/core sj_das/ui/commands
-
-# Linting
-ruff check sj_das/
-
-# Auto-fix linting issues
-ruff check --fix sj_das/
-
-# Format code
-ruff format sj_das/
-```
-
-### Pre-commit Hooks
-
-```bash
-# Install pre-commit hooks
-pip install pre-commit
-pre-commit install
-
-# Run hooks manually
-pre-commit run --all-files
-```
-
-Hooks automatically run:
-- Trailing whitespace removal
-- YAML/TOML validation
-- Ruff linting and formatting
-- mypy type checking
-- pytest unit tests
-
-## 📚 Architecture
-
-### Design Patterns
-
-- **Factory Pattern**: `PanelFactory`, `ToolbarFactory` for UI component creation
-- **Command Pattern**: `MaskEditCommand` for undo/redo functionality
-- **Decorator Pattern**: `@safe_slot` for crash-proof UI error handling
-- **Observer Pattern**: PyQt signals/slots for event-driven architecture
-
-### Exception Hierarchy
-
-```python
-SJDASException (base)
-├── DesignImportError
-├── AIProcessingError
-├── LoomConfigError
-├── ExportError
-├── ValidationError
-├── ResourceNotFoundError
-└── WeaveGenerationError
-```
-
-All exceptions include contextual `details` dictionary for debugging.
-
-## 🎨 UI Features
-
-### Professional Tools
-- Selection (Rectangle, Lasso, Magic Wand)
-- Drawing (Brush, Eraser, Fill, Clone Stamp)
-- Shapes (Rectangle, Ellipse, Line)
-- Text overlay
-- Color picker with yarn palette integration
-
-### AI-Powered Features
-- **Pattern Analysis**: Complexity scoring and structure detection
-- **Auto-Segmentation**: CV-based region detection
-- **Variation Generation**: StyleGAN2 synthesis
-- **Smart Recolor**: Palette-based color transformation
-
-## 🧠 MiniMax M2.1 AI Integration
-
-SJ-DAS now includes **MiniMax M2.1**, an advanced large language model optimized for intelligent design assistance.
-
-### AI Capabilities
-
-#### 🎨 Intelligent Design Analysis
-- Detailed pattern type identification (geometric, floral, traditional motifs)
-- Color palette evaluation and harmony analysis
-- Weave structure recommendations (Plain, Twill, Satin, Jacquard)
-- Quality assessment and loom-readiness checks
-- Cultural context identification
-
-#### 💡 Context-Aware Recommendations
-- Smart color palette suggestions based on design context
-- Pattern variation recommendations with rationale
-- Weave structure optimization for specific designs
-- Traditional and cultural design insights
-- Manufacturing feasibility analysis
-
-#### 💬 Conversational AI Assistant
-- Multi-turn conversations about design decisions
-- Natural language understanding for design queries
-- Expert textile design knowledge
-- Integration with adaptive memory system
-
-### Quick Start with MiniMax
-
-```bash
-# Configure your API key
-python configure_minimax.py
-
-# Run examples
-python examples/minimax_examples.py
-```
-
-### Usage Examples
-
-```python
-from sj_das.ai.agi_assistant import get_agi
-
-agi = get_agi()
-
-# Analyze a design
-response = agi.process_command("analyze this peacock pattern design")
-
-# Get color recommendations
-response = agi.process_command("suggest colors for a traditional wedding saree")
-
-# Get pattern suggestions
-response = agi.process_command("recommend pattern variations for border design")
-```
-
-For detailed documentation, see [MINIMAX_INTEGRATION.md](docs/MINIMAX_INTEGRATION.md).
-
-## 🏭 Loom Integration
-
-### Supported Formats
-- **BMP Export**: Industry-standard Jacquard format
-- **Hook Configuration**: 1000-4000 hooks supported
-- **Color Depth**: 2-256 colors (loom-dependent)
-
-### Weave Structures
-- Plain weave
-- Twill (2/2, 3/1, 3/3)
-- Satin (4-harness, 8-harness)
-- Custom patterns via weave library
-
-## 📊 Performance
-
-- **Startup Time**: < 3 seconds
-- **Image Load**: < 1 second for 4K images
-- **Undo/Redo**: O(1) with dirty-rect optimization
-- **AI Inference**: ~2-5 seconds (GPU), ~10-20 seconds (CPU)
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/amazing-feature`)
-3. Install pre-commit hooks (`pre-commit install`)
-4. Make changes with tests
-5. Ensure all tests pass (`pytest tests/`)
-6. Ensure type checking passes (`mypy sj_das/`)
-7. Commit changes (`git commit -m 'Add amazing feature'`)
-8. Push to branch (`git push origin feature/amazing-feature`)
-9. Open Pull Request
-
-### Code Standards
-- **Type Hints**: Required for all public APIs
-- **Docstrings**: Google-style for all classes/functions
-- **Test Coverage**: Maintain >80% on new code
-- **Line Length**: 120 characters (ruff enforced)
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- **QFluentWidgets**: Modern UI components
-- **StyleGAN2-ADA**: AI pattern generation
-- **PyQt6**: Application framework
-- **OpenCV**: Computer vision operations
-
-## 📧 Contact
-
-- **Project Lead**: [Your Name]
-- **Email**: [your.email@example.com]
-- **Issues**: [GitHub Issues](https://github.com/yourusername/sj-das-project/issues)
+SJDAS v2.0 is an enterprise-grade, cloud-native Textile Design Studio built to bridge the gap between human creativity and rigid mechanical loom constraints. By leveraging AI (SAM 2, Hugging Face Real-ESRGAN, K-Means Quantization) and mathematical matrix generation (OpenCV, Supabase), SJDAS autonomously outputs 100% production-ready 8-bit Indexed Color BMPs and JC5 machine files directly to industrial Jacquard looms.
 
 ---
 
-**Built with ❤️ for the textile industry**
+## 👨‍💻 Author & Contact
+**Balaji Koushik**
+Email: [balajikoushik01@gmail.com](mailto:balajikoushik01@gmail.com)
+GitHub: [BalajiKoushik01](https://github.com/BalajiKoushik01)
+
+---
+
+## 🏗️ Architecture Stack
+
+### Frontend (The Midnight Industrial Studio)
+- **Framework:** Next.js 15 (App Router)
+- **Editor:** Fabric.js (Strict `useRef` isolation for massive 12,000x8000px canvases)
+- **State Management:** Zustand (for non-blocking UI interactions)
+- **Styling & UI:** Tailwind CSS v4, shadcn/ui
+- **Animations:** Framer Motion (Liquid UI transitions and WebSockets progress streaming)
+
+### Backend (The Autonomous Workers)
+- **API Engine:** FastAPI (Python)
+- **Async Pipeline:** Celery + Redis (Handling massive NumPy matrix computations off the main thread)
+- **Live Sync:** WebSockets (`/ws/progress/{task_id}`) for 0ms UI progress updates
+- **Math Engine:** OpenCV (Non-Linear Trapezoidal Kali Warping via `cv2.INTER_NEAREST`)
+- **Compilation:** Pillow `P` mode (Zero-compression 8-bit Strict Palette hardware exporting)
+
+### Database & Auth (Multi-Tenant Scale)
+- **Platform:** Supabase (PostgreSQL)
+- **Security:** Strict Row Level Security (RLS) policies guaranteeing exact `factory_id` tenant isolation
+- **Feature Set:** `loom_profiles` (Hardware Constraints) and `thread_inventory` (Physical stock counts)
+- **Storage:** Private Supabase Buckets mapped to `factory_id` for proprietary Zero-Scrape IP protection.
+
+---
+
+## ⚙️ Core Modules & Capabilities
+
+### 1. The Kali-Warp Processing Engine (Multi-Panel Output)
+SJDAS mathematically stretches and tapers motifs (using OpenCV `getPerspectiveTransform` and `INTER_NEAREST`) to construct **Multi-Panel (Kali)** designs. The backend smoothly stitches up to 12 Kalis into a single giant NumPy array seamlessly.
+
+### 2. Factory Stock API (CIEDE2000 Delta-E Matching)
+The system calculates the Euclidean distance between a design's colors and the factory's physical thread inventory stored in Supabase. It features an interactive "Traffic Light" UI (`FactoryStockSidebar.tsx`) that alerts designers if they draw with colors representing threads that are out of stock.
+
+### 3. Asynchronous "Shadow Canvas" (Float Guardian)
+The React UI stays silky smooth because heavy math (SAM 2 AI Tracing, Hugging Face Denoising) runs via Celery Background Workers. 
+
+### 4. Zero-Aliasing Machine Export
+Directly exports 8-bit Indexed Color `saree_production_file.bmp` files with strict 768-integer pallet headers, completely compliant with Stäubli and Bonas loom interfaces.
+
+---
+
+## 🚀 Setup & Installation
+
+### 1. Requirements
+- Node.js 18+
+- Python 3.10+
+- Redis Server (Native or Docker)
+- Supabase Project
+
+### 2. Next.js Frontend Initialization
+```bash
+cd web
+npm install
+npm run dev
+```
+
+### 3. FastAPI Backend Initialization
+```bash
+cd backend
+pip install -r requirements.txt
+
+# Terminal 1: Start Redis (if Unix/Docker)
+redis-server
+
+# Terminal 2: Start FastAPI Web Server
+uvicorn main:app --reload --port 8000
+
+# Terminal 3: Start Celery Background Workers
+celery -A tasks worker --loglevel=info
+```
+
+### 4. Database Setup
+Apply the `backend/db/001_rls_migration.sql` to your Supabase project's SQL Editor to establish all tables, auth functions, and RLS policies.
+
+---
+
+*Engineered for performance, designed for creativity. SJDAS v2.0.*

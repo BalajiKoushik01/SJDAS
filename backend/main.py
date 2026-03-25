@@ -4,12 +4,14 @@ import sys
 from io import BytesIO
 from typing import List, Optional
 
+import asyncio
 import cv2
 import numpy as np
-from fastapi import Body, FastAPI, HTTPException
+from fastapi import Body, FastAPI, HTTPException, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
 from pydantic import BaseModel
+from celery.result import AsyncResult
 
 # Add project root to path to import sj_das modules
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -27,12 +29,15 @@ except ImportError as e:
     get_procedural_generator = None
 
 # Import Routers
-from backend.routers import jules, auth, decode, export
+from backend.routers import jules, auth, decode, export, factory, kali
+from backend.tasks import generate_saree_master_file
 
 
 app = FastAPI(
-    title="SJ-DAS API",
-    description="Smart Jacquard Design Automation System API")
+    title="SJDAS AI Engine v2.0",
+    description="Asynchronous Background Autonomous Framework",
+    version="2.0.0"
+)
 
 # CORS setup for interacting with Next.js
 app.add_middleware(
@@ -47,7 +52,50 @@ app.include_router(jules.router, prefix="/jules", tags=["Jules"])
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
 app.include_router(decode.router, prefix="/api/v1", tags=["Analysis"])
 app.include_router(export.router, prefix="/api/v1", tags=["Export"])
+app.include_router(factory.router, prefix="/api/v1", tags=["Factory"])
+app.include_router(kali.router, prefix="/api/v1", tags=["Multi-Panel Architecture"])
 
+
+class AsyncExportRequest(BaseModel):
+    design_id: str
+    hooks: int
+    kali_count: int
+    picks_height: int
+
+@app.post("/api/v1/generate-loom-file-async", tags=["Async Export"])
+async def trigger_generation(design_data: AsyncExportRequest):
+    """
+    Receives request and hands it to Celery immediately. UI remains un-frozen.
+    """
+    data_dict = design_data.model_dump()
+    task = generate_saree_master_file.delay(data_dict)
+    return {"status": "processing", "task_id": task.id}
+
+@app.websocket("/ws/progress/{task_id}")
+async def websocket_progress(websocket: WebSocket, task_id: str):
+    """
+    Next.js connects here to get real-time updates for Framer Motion loaders.
+    """
+    await websocket.accept()
+    
+    try:
+        while True:
+            task_result = AsyncResult(task_id)
+            
+            if task_result.state == 'PENDING':
+                await websocket.send_json({"status": "pending", "message": "Initializing AI Workers..."})
+            elif task_result.state == 'PROGRESS':
+                await websocket.send_json({"status": "progress", "meta": task_result.info})
+            elif task_result.state == 'SUCCESS':
+                await websocket.send_json({"status": "success", "file_url": task_result.result})
+                break
+            elif task_result.state == 'FAILURE':
+                await websocket.send_json({"status": "error", "message": str(task_result.info)})
+                break
+                
+            await asyncio.sleep(0.5)
+    except Exception as e:
+        await websocket.close()
 
 
 class DesignRequest(BaseModel):

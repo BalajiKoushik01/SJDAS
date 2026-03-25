@@ -1,32 +1,66 @@
-from fastapi import APIRouter, Depends
+import os
+import cv2
+import numpy as np
+from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from backend.routers.auth import get_current_user, User
+from backend.routers.auth import verify_token
+from backend.services.bmp_compiler import export_to_indexed_bmp
 
-router = APIRouter()
-
-class ExportRequest(BaseModel):
-    designId: str
-    format: str
-    hook_count: int
+router = APIRouter(
+    prefix="/api/v1/export",
+    tags=["Export"],
+    responses={404: {"description": "Not found"}},
+)
 
 class ExportResponse(BaseModel):
     jobId: str
     status: str
+    url: str
 
-@router.post("/export", response_model=ExportResponse)
-async def start_export(
-    request: ExportRequest, 
-    current_user: User = Depends(get_current_user)
+@router.post("/generate-loom-file")
+async def generate_loom_file(
+    file: UploadFile = File(...),
+    token: str = Depends(verify_token)
 ):
-    return {
-        "jobId": f"mock-export-{request.designId}",
-        "status": "pending"
-    }
+    """
+    Receives the giant UI matrix from frontend (or reads the shadow canvas), 
+    and mathematically exports to the strict 8-bit indexed BMP format.
+    """
+    # 1. Read the uploaded raw array
+    file_bytes = np.frombuffer(await file.read(), np.uint8)
+    image_matrix = cv2.imdecode(file_bytes, cv2.IMREAD_GRAYSCALE) # The UI must send an 8-bit single-channel image
+    
+    if image_matrix is None:
+        raise HTTPException(status_code=400, detail="Invalid matrix uploaded for export")
+        
+    # 2. Strict Machine Header Palette (Simulated grab from Factory API)
+    # 0 = Ground, 1 = Butta, 2 = Extra Zari
+    factory_inventory_palette = [
+        (0, 0, 128),     # Navy
+        (255, 215, 0),   # Gold
+        (192, 192, 192)  # Silver
+    ]
+    
+    # 3. Export to Indexed BMP
+    output_filename = "saree_production_file.bmp"
+    export_to_indexed_bmp(
+        master_matrix=image_matrix, 
+        stock_colors=factory_inventory_palette,
+        output_filename=output_filename
+    )
+    
+    # In a real system, upload to S3 or serve securely. Here we return the file locally.
+    return FileResponse(
+        path=output_filename, 
+        media_type="image/bmp", 
+        filename=output_filename
+    )
 
-@router.get("/export/{jobId}")
-async def get_export_status(jobId: str, current_user: User = Depends(get_current_user)):
+@router.get("/status/{jobId}")
+async def get_export_status(jobId: str, token: str = Depends(verify_token)):
     return {
         "jobId": jobId,
         "status": "completed",
-        "downloadUrl": f"https://mock-s3-bucket/exports/{jobId}/design.bmp"
+        "url": "/mock/download/link.bmp"
     }
