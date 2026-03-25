@@ -24,7 +24,7 @@ GitHub: [BalajiKoushik01](https://github.com/BalajiKoushik01)
 To prevent freezing the desktop UI during massive 12,000x8000px matrix calculations, heavy lifting is piped to an asynchronous cloud stack:
 - **API Engine:** FastAPI
 - **Background Workers:** Celery + Redis
-- **Live Sync:** WebSockets (`/ws/progress/{task_id}`) streaming 0ms UI progress back to the client.
+- **Live Sync:** WebSockets (`/ws/progress/{task_id}`) for near real-time UI progress updates (actual latency depends on network/client processing).
 
 ### 3. The B2B Web Portal (Next.js 15)
 An enterprise web-dashboard (`web/`) built with React (Fabric.js), Zustand, and Tailwind CSS. Offers "Midnight Industrial" access to cloud sync, AI tracing (SAM 2), and remote factory management.
@@ -37,14 +37,19 @@ An enterprise web-dashboard (`web/`) built with React (Fabric.js), Zustand, and 
 
 ## ✨ Features & Upgrades
 
-### 🎨 Professional Editor Tools
+### 🎨 Professional Editor & Glass Toolbox
 - Selection (Lasso, Magic Wand), Drawing (Brush, Clone Stamp), Auto-Seamless Repeat.
+- Framer Motion Liquid Transitions for premium Studio feel.
 - **Smart Recolor & Factory Stock API:** Calculates CIEDE2000 Delta-E distance between a design's colors and the factory's physical thread inventory (stored in Supabase). 
 
-### 🧠 MiniMax M2.1 AI Integration
-Advanced LLM optimized for intelligent design assistance.
-- Intelligent Design Analysis (motif types, color harmony, weave structures).
-- Conversational AI Assistant (natural language querying for design feasibility).
+### 🧠 Autonomous AI Agents & Background Labor
+- **SAM 2 Magic Tracer:** Fast vectorization of specific saree motifs via Segmind SAM 2.
+- **Smart Healing Brush:** Seamless pattern diffusion and dust removal using OpenCV Inpainting.
+- **MiniMax M2.1 Integration:** Intelligent Design Analysis and Conversational AI Assistant.
+
+### 🏭 Advanced Hardware Integration & Validation
+- **Global Float Guard:** A proactive background algorithm validating warp/weft matrices for long floats (> 15 hooks), automatically preventing snagging.
+- **Multi-Format Export:** Raw binary JC5 (Staubli), WIF (Weaving Information File), and 8-bit Indexed BMP exports.
 
 ### 📐 The Kali-Warp Processing Engine (Multi-Panel Output)
 Mathematically stretches and tapers motifs (using OpenCV) to construct Multi-Panel (Kali) designs, smoothly stitching up to 12 Kalis into a single giant NumPy array seamlessly.
@@ -58,6 +63,23 @@ Mathematically stretches and tapers motifs (using OpenCV) to construct Multi-Pan
 - Windows 10/11 (primary)
 - 8GB RAM minimum, 16GB recommended
 - Redis Server (for FastAPI background workers)
+
+### Environment Configuration
+
+Before initializing the application or background services, you must configure the required environment variables. Create `.env` files in both the `web/` and `backend/` directories. Refer to the `.env.example` templates provided in the repository.
+
+**Supabase Integration (`web/.env` & `backend/.env`)**
+Required by the Supabase clients in the frontend and `backend/main.py`.
+- `SUPABASE_URL`: Your Supabase API project URL.
+- `SUPABASE_ANON_KEY`: Your public anonymous key (safe for web).
+- `SUPABASE_SERVICE_ROLE_KEY`: Your secret service role key (Backend only).
+
+**Redis Settings (`backend/.env`)**
+Required by `backend/tasks.py` to route Celery workers.
+- `REDIS_URL`: The full Redis connection URL (e.g., `redis://localhost:6379/0`), or optionally `REDIS_HOST` and `REDIS_PORT`.
+
+**Backend AI Dependencies (`backend/.env`)**
+- `HF_API_KEY`: Hugging Face API key used by `backend/routers/decode.py` for AI processing layers.
 
 ### 1. Desktop Application Setup
 

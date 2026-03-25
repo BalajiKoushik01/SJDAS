@@ -68,22 +68,22 @@ class ThemeManager(QObject):
             }
         },
         'midnight': {
-            'name': 'Midnight',
+            'name': 'Midnight Industrial',
             'colors': {
-                'bg_primary': '#000000',
-                'bg_secondary': '#0A0A0A',
-                'bg_elevated': '#1A1A1A',
-                'bg_hover': '#2A2A2A',
-                'border_subtle': '#1A1A1A',
-                'border_accent': '#3B82F6',
-                'text_primary': '#FFFFFF',
-                'text_secondary': '#A0A0A0',
-                'text_muted': '#606060',
-                'accent_primary': '#3B82F6',
-                'accent_secondary': '#60A5FA',
-                'success': '#10B981',
-                'warning': '#F59E0B',
-                'error': '#EF4444',
+                'bg_primary': '#0f172a',      # Tailwind slate-900
+                'bg_secondary': '#1e293b',    # Tailwind slate-800
+                'bg_elevated': '#0f172a',     # Tailwind slate-900
+                'bg_hover': '#334155',        # Tailwind slate-700
+                'border_subtle': '#334155',   # Tailwind slate-700
+                'border_accent': '#38bdf8',   # Tailwind cyan-400
+                'text_primary': '#f8fafc',    # Tailwind slate-50
+                'text_secondary': '#cbd5e1',  # Tailwind slate-300
+                'text_muted': '#94a3b8',      # Tailwind slate-400
+                'accent_primary': '#38bdf8',  # Tailwind cyan-400
+                'accent_secondary': '#22d3ee',# Tailwind cyan-400
+                'success': '#34d399',         # Tailwind emerald-400
+                'warning': '#fbbf24',         # Tailwind amber-400
+                'error': '#f43f5e',           # Tailwind rose-500
             }
         }
     }
@@ -102,8 +102,8 @@ class ThemeManager(QObject):
 
     def __init__(self):
         super().__init__()
-        self.current_theme = 'dark'
-        self.current_accent = 'indigo'
+        self.current_theme = 'midnight'
+        self.current_accent = 'cyan'
         self.config_path = Path.home() / '.sj_das' / 'theme.json'
         self.load_preferences()
 
@@ -313,8 +313,8 @@ class ThemeManager(QObject):
         try:
             with open(self.config_path) as f:
                 prefs = json.load(f)
-            self.current_theme = prefs.get('theme', 'dark')
-            self.current_accent = prefs.get('accent', 'indigo')
+            self.current_theme = prefs.get('theme', 'midnight')
+            self.current_accent = prefs.get('accent', 'cyan')
             logger.info(
                 f"Loaded theme preferences: {self.current_theme}/{self.current_accent}")
         except Exception as e:

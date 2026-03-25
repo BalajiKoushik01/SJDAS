@@ -1,70 +1,135 @@
 'use client';
 
 import { useStudioStore } from '@/store/useStudioStore';
-import { Play } from 'lucide-react';
+import { Play, Download, ChevronDown, Cloud, CheckCircle, Loader2, Grid3x3 } from 'lucide-react';
+import { useState } from 'react';
+
+const EXPORT_FORMATS = ['BMP (Loom)', 'JC5 / Stäubli', 'WIF', 'SVG', 'DXF', 'PDF Sheet', 'PNG 300DPI'];
 
 export default function StudioHeader() {
-  const hooks = useStudioStore((state) => state.hooks);
-  const kalis = useStudioStore((state) => state.kalis);
-  const setMechanicalSpecs = useStudioStore((state) => state.setMechanicalSpecs);
-  const setTaskId = useStudioStore((state) => state.setTaskId);
+  const { hooks, kalis, setMechanicalSpecs, taskId, wsMessage, showGrid, setShowGrid } = useStudioStore();
+  const [exporting, setExporting] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
-  const handleRunMachine = async () => {
-    // Fire the POST request to FastAPI to kick off Celery Task
-    const res = await fetch('http://localhost:8000/api/v1/generate-loom-file-async', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        design_id: 'temp-123',
-        hooks: hooks,
-        kali_count: kalis,
-        picks_height: 8000
-      })
-    });
-    const data = await res.json();
-    if (data.task_id) {
-      setTaskId(data.task_id);
+  const handleExport = async (format: string) => {
+    setExporting(true);
+    setExportOpen(false);
+    try {
+      const res = await fetch('http://localhost:8000/api/v1/generate-loom-file-async', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ design_id: 'studio-active', hooks, kali_count: kalis, picks_height: 8000, format }),
+      });
+      const data = await res.json();
+      if (data.task_id) useStudioStore.getState().setTaskId(data.task_id);
+    } finally {
+      setTimeout(() => setExporting(false), 2000);
     }
   };
 
   return (
-    <header className="h-16 w-full border-b border-slate-800 bg-slate-900/80 backdrop-blur-md flex items-center justify-between px-6 shrink-0 z-50 absolute top-0">
-      <div className="flex items-center gap-4">
-        <h1 className="text-xl font-bold text-slate-200">SJ<span className="text-[#38bdf8]">DAS</span> Studio</h1>
-        <div className="h-6 w-px bg-slate-700 mx-2" />
-        <span className="text-sm text-slate-400 font-mono">ID: temp-123</span>
+    <header style={{
+      height: 52, width: '100%', display: 'flex', alignItems: 'center',
+      justifyContent: 'space-between', padding: '0 16px',
+      background: 'rgba(15,17,23,0.95)', backdropFilter: 'blur(12px)',
+      borderBottom: '1px solid var(--border)',
+      position: 'absolute', top: 0, left: 0, right: 0, zIndex: 60,
+    }}>
+      {/* Left: Brand + breadcrumb */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
+          <span style={{ color: 'var(--accent-gold)' }}>SJ</span>DAS Studio
+        </span>
+        <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>/</span>
+        <span className="mono" style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Untitled Design</span>
       </div>
 
-      <div className="flex items-center gap-6">
-        {/* Mechanical Controls */}
-        <div className="flex items-center gap-3 text-sm">
-          <label className="text-slate-400">Hooks:</label>
-          <input 
-            type="number" 
-            value={hooks}
+      {/* Center: Mechanical Controls */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <label style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Hooks</label>
+          <input
+            type="number" value={hooks} min={1000} max={4000} step={100}
             onChange={(e) => setMechanicalSpecs(Number(e.target.value), kalis)}
-            className="w-20 bg-slate-800 border-slate-700 text-slate-200 rounded px-2 py-1 outline-none focus:border-[#38bdf8] transition-colors"
+            className="mono"
+            style={{
+              width: 64, height: 28, background: 'var(--bg-hover)', border: '1px solid var(--border-hover)',
+              borderRadius: 'var(--radius-sm)', color: 'var(--accent-gold)', textAlign: 'center',
+              fontSize: 13, fontFamily: 'var(--font-mono)', outline: 'none', padding: 0,
+            }}
           />
         </div>
-        <div className="flex items-center gap-3 text-sm">
-          <label className="text-slate-400">Kalis:</label>
-          <input 
-            type="number" 
-            value={kalis}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <label style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Kalis</label>
+          <input
+            type="number" value={kalis} min={1} max={12}
             onChange={(e) => setMechanicalSpecs(hooks, Number(e.target.value))}
-            className="w-16 bg-slate-800 border-slate-700 text-slate-200 rounded px-2 py-1 outline-none focus:border-[#38bdf8] transition-colors"
+            className="mono"
+            style={{
+              width: 40, height: 28, background: 'var(--bg-hover)', border: '1px solid var(--border-hover)',
+              borderRadius: 'var(--radius-sm)', color: 'var(--accent-gold)', textAlign: 'center',
+              fontSize: 13, fontFamily: 'var(--font-mono)', outline: 'none', padding: 0,
+            }}
           />
         </div>
 
-        {/* Action Button */}
-        <button 
-          onClick={handleRunMachine}
-          className="flex items-center gap-2 bg-[#38bdf8]/10 hover:bg-[#38bdf8]/20 border border-[#38bdf8]/50 text-[#38bdf8] px-4 py-2 rounded-md font-medium transition-all shadow-[0_0_15px_rgba(56,189,248,0.2)] hover:shadow-[0_0_20px_rgba(56,189,248,0.4)]"
+        {/* Grid Toggle */}
+        <button
+          onClick={() => setShowGrid(!showGrid)}
+          title="Toggle Grid"
+          style={{
+            width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            borderRadius: 'var(--radius-sm)', border: 'none', cursor: 'pointer',
+            background: showGrid ? 'var(--accent-gold-dim)' : 'var(--bg-hover)',
+            color: showGrid ? 'var(--accent-gold)' : 'var(--text-muted)',
+          }}
         >
-          <Play size={16} fill="currentColor" />
-          Generate Loom File
+          <Grid3x3 size={14} />
         </button>
+
+        {/* Cloud Status */}
+        {taskId && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--text-muted)' }}>
+            <Cloud size={12} />
+            <span>{wsMessage}</span>
+          </div>
+        )}
       </div>
+
+      {/* Right: Export */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
+        <button
+          onClick={() => setExportOpen(!exportOpen)}
+          className="btn-primary"
+          style={{ display: 'flex', alignItems: 'center', gap: 6, height: 32, padding: '0 12px', fontSize: 12 }}
+        >
+          {exporting ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <Download size={13} />}
+          Export
+          <ChevronDown size={12} />
+        </button>
+
+        {exportOpen && (
+          <div style={{
+            position: 'absolute', top: 36, right: 0, zIndex: 200,
+            background: 'var(--bg-elevated)', border: '1px solid var(--border-hover)',
+            borderRadius: 'var(--radius-md)', padding: 4, minWidth: 160,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+          }}>
+            {EXPORT_FORMATS.map((f) => (
+              <button key={f} onClick={() => handleExport(f)} style={{
+                display: 'block', width: '100%', padding: '8px 12px', textAlign: 'left',
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: 'var(--text-secondary)', fontSize: 13, borderRadius: 'var(--radius-sm)',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+              >{f}</button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </header>
   );
 }

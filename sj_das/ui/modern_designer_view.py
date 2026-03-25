@@ -3,7 +3,7 @@ Premium Designer View - Photoshop Quality
 Research-based implementation with professional UX
 """
 
-from sj_das.core.services.ai_service import AIService
+from sj_das.core.services.ai_service import AIService, AIWorker
 import os
 import time
 
@@ -113,7 +113,8 @@ class PremiumDesignerView(QWidget, DesignerViewPSPMethods):
     """Premium Photoshop-quality designer view"""
 
     def __init__(self, parent=None):
-        super().__init__(parent)
+        # Initialize Base QWidget First
+        QWidget.__init__(self, parent)
         self.ai_worker = None
 
         # Core components
@@ -351,9 +352,14 @@ class PremiumDesignerView(QWidget, DesignerViewPSPMethods):
             if not ok or query.lower() == 'exit':
                 break
 
-            result = agi.process_command(query)
-            response = result.get('response', 'No response')
-            QMessageBox.information(self, "AI Response", response)
+            result = {} # Initialize result here
+            try:
+                result = agi.process_command(query)
+                response = result.get('response', 'No response')
+                QMessageBox.information(self, "AI Response", response)
+            except Exception as e:
+                QMessageBox.critical(self, "AI Error", f"Failed to process command: {e}")
+
 
     # ==================== FILE OPERATIONS ====================
 
@@ -3067,62 +3073,44 @@ class PremiumDesignerView(QWidget, DesignerViewPSPMethods):
 
     @safe_slot
     def export_loom_file(self):
-        """Generates Binary Loom File (BMP)."""
+        """Generates Binary Loom File (BMP) via Asynchronous Cloud Workers."""
         if self.editor.original_image is None:
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.warning(self, "Warning", "No image to export to the cloud.")
             return
-        self.status_label.setText("Manufacturing: Generating Loom Binary...")
-        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
-        try:
-            from sj_das.core.loom_engine import LoomEngine
-            engine = LoomEngine()
 
-            # Get Image & Quantize
-            image_q = self.editor.get_image()
-            ptr = image_q.bits()
-            ptr.setsize(image_q.sizeInBytes())
-            arr = np.array(ptr).reshape(image_q.height(), image_q.width(), 4)
-            img_bgr = cv2.cvtColor(arr, cv2.COLOR_RGBA2BGR)
+        # 1. Prepare the payload for the SaaS FastAPI backend
+        payload = {
+            "design_id": "sjdas-desktop-session",
+            "hooks": 600,  # We can pull this from UI spinboxes later
+            "kali_count": 1,
+            "picks_height": 8000
+        }
 
-            # Reduce to Max 8 colors for mapping
-            # (In real app, we'd use current palette indices)
-            from sj_das.core.quantizer import ColorQuantizerEngine
-            q_engine = ColorQuantizerEngine()
-            quantized = q_engine.quantize(
-                img_bgr, k=8, dither=False)  # No dither for loom!
+        # 2. Instantiate the CloudSyncWorker (QThread)
+        from sj_das.core.cloud_sync_worker import CloudSyncWorker
+        self.cloud_worker = CloudSyncWorker(
+            api_url="http://localhost:8000/api/v1/generate-loom-file-async",
+            ws_url="ws://localhost:8000/ws/progress",
+            payload=payload,
+            parent=self
+        )
 
-            # Create Index Map
-            # Convert quantized BGR to Index 0-7
-            # Simple unique mapping
-            gray = cv2.cvtColor(quantized, cv2.COLOR_BGR2GRAY)
-            unique = np.unique(gray)
+        # 3. Instantiate the Sleek Modal Dialog
+        from sj_das.ui.cloud_export_dialog import CloudExportDialog
+        self.export_dialog = CloudExportDialog(self)
 
-            # Auto-Map Weaves
-            # Darker = Satin, Lighter = Plain?
-            # Or just round robin
-            weave_map = {}
-            weave_names = ['Satin 5', 'Plain', 'Twill 3/1', 'Satin 8']
-            for i, val in enumerate(unique):
-                w_name = weave_names[i % len(weave_names)]
-                weave_map[val] = w_name
+        # 4. Wire the signals across thread boundaries
+        self.cloud_worker.progress_updated.connect(self.export_dialog.update_progress_ui)
+        self.cloud_worker.task_success.connect(self.export_dialog.show_success_state)
+        self.cloud_worker.task_error.connect(self.export_dialog.show_error_state)
 
-            # Generate Graph
-            graph = engine.generate_graph(gray, weave_map)
+        # Cleanly stop the worker if the user closes the modal prematurely
+        self.export_dialog.rejected.connect(self.cloud_worker.stop)
 
-            # Save
-            path, _ = QFileDialog.getSaveFileName(
-                self, "Export Loom File", "", "Windows Bitmap (*.bmp)")
-            if path:
-                engine.save_loom_file(graph, path)
-                InfoBar.success(
-                    title="Export Complete",
-                    content=f"Saved to {path}",
-                    parent=self)
-
-        except Exception as e:
-            logger.error(f"Loom Export Error: {e}")
-        finally:
-            QApplication.restoreOverrideCursor()
-            self.status_label.setText("Ready")
+        # 5. Launch the process
+        self.cloud_worker.start()
+        self.export_dialog.exec()
 
     @safe_slot
     def show_3d_fabric_view(self):
@@ -3256,42 +3244,42 @@ class PremiumDesignerView(QWidget, DesignerViewPSPMethods):
 
     @safe_slot
     def activate_smart_select(self):
-        """Activates SAM Tool."""
+        """Activates SAM Tool Async."""
         if self.editor.original_image is None:
             return
         self.status_label.setText(
-            "AI: Loading Segment Anything (SAM)... Click a motif to select.")
+            "AI: Loading Segment Anything (SAM)... Please wait.")
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
 
-        # Initialize Engine Async? Or blocking for now
-        # Ideally we store engine in self
         if not hasattr(self, 'sam_engine'):
             try:
                 from sj_das.core.sam_engine import SAMEngine
                 self.sam_engine = SAMEngine()
-                # Set Image
                 img = self.editor.get_image()
                 ptr = img.bits()
                 ptr.setsize(img.sizeInBytes())
                 arr = np.array(ptr).reshape(img.height(), img.width(), 4)
 
-                # Heavy step
-                self.sam_engine.set_image(arr)
+                # Heavy step async
+                self.ai_worker_sam = AIWorker(self.sam_engine.set_image, arr)
 
-                self.editor.set_tool_mode('smart_select')
-                # We need to hook into mouse click.
-                # Ideally 'set_tool_mode' handles this in Canvas.
-                # If not, we do ad-hoc hook.
-                self.editor.smart_click_callback = self.handle_smart_click
+                def on_sam_ready(res):
+                    self.editor.set_tool_mode('smart_select')
+                    self.editor.smart_click_callback = self.handle_smart_click
+                    self.status_label.setText("AI: SAM Ready. Click to Select.")
+                    QApplication.restoreOverrideCursor()
 
-                self.status_label.setText("AI: SAM Ready. Click to Select.")
+                self.ai_worker_sam.finished.connect(on_sam_ready)
+                self.ai_worker_sam.start()
 
             except Exception as e:
                 logger.error(f"SAM Init Error: {e}")
                 self.status_label.setText("AI: SAM Failed to Load.")
+                QApplication.restoreOverrideCursor()
         else:
             self.editor.set_tool_mode('smart_select')
             self.status_label.setText("AI: SAM Ready. Click on motif.")
+            QApplication.restoreOverrideCursor()
 
         QApplication.restoreOverrideCursor()
 
@@ -3301,14 +3289,19 @@ class PremiumDesignerView(QWidget, DesignerViewPSPMethods):
             self.status_label.setText("AI: Segmenting...")
             QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
 
-            mask = self.sam_engine.predict_click(x, y)
+            self.ai_worker_click = AIWorker(self.sam_engine.predict_click, x, y)
 
-            if mask is not None:
-                # Apply as Selection
-                self.editor.set_selection_from_mask(mask)
-                self.status_label.setText("AI: Selection Created.")
+            def on_mask_ready(mask):
+                if mask is not None:
+                    # Apply as Selection
+                    self.editor.set_selection_from_mask(mask)
+                    self.status_label.setText("AI: Selection Created.")
+                else:
+                    self.status_label.setText("AI: Selection Failed.")
+                QApplication.restoreOverrideCursor()
 
-            QApplication.restoreOverrideCursor()
+            self.ai_worker_click.finished.connect(on_mask_ready)
+            self.ai_worker_click.start()
 
     @safe_slot
     def redo(self, *args):
@@ -3331,10 +3324,6 @@ class PremiumDesignerView(QWidget, DesignerViewPSPMethods):
             # Assuming self.layout() is valid (it inherits from QWidget/QFrame)
             # If layout is HBox/VBox, we can insert.
             # But ModernDesignerView usually has a central layout.
-
-            # Safest: Use a DockWidget if parent is Main Window, but here we are a View.
-            # Let's try adding it to the layout if it handles it.
-            # Or better: Create a dedicated "Right Panel" area.
 
             # Simple Hack: Absolute positioning (Floating)
             self.copilot_widget.setParent(self)
@@ -3908,7 +3897,7 @@ class PremiumDesignerView(QWidget, DesignerViewPSPMethods):
 
             from sj_das.core.loom_engine import LoomEngine
             if not hasattr(
-                    self.editor, 'original_image') or self.editor.original_image is None:
+                    self.editor, 'original_image') or self.editor.original_image is not None:
                 QMessageBox.warning(self, "Warning", "No image to export")
                 return
             file_path, _ = QFileDialog.getSaveFileName(
@@ -5045,6 +5034,7 @@ class ProactiveObserverThread(QThread):
             self.status_bar.showMessage("AI is thinking...")
             QApplication.processEvents()
 
+            result = {} # Initialize result here
             try:
                 # Process with AGI
                 agi = get_agi()

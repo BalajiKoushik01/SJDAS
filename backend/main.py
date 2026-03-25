@@ -29,7 +29,7 @@ except ImportError as e:
     get_procedural_generator = None
 
 # Import Routers
-from backend.routers import jules, auth, decode, export, factory, kali
+from backend.routers import jules, auth, decode, export, factory, kali, decode_async, export_advanced, ai_tools
 from backend.tasks import generate_saree_master_file
 
 
@@ -52,8 +52,11 @@ app.include_router(jules.router, prefix="/jules", tags=["Jules"])
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
 app.include_router(decode.router, prefix="/api/v1", tags=["Analysis"])
 app.include_router(export.router, prefix="/api/v1", tags=["Export"])
+app.include_router(export_advanced.router, prefix="/api/v1", tags=["Advanced Export"])
 app.include_router(factory.router, prefix="/api/v1", tags=["Factory"])
 app.include_router(kali.router, prefix="/api/v1", tags=["Multi-Panel Architecture"])
+app.include_router(decode_async.router, prefix="/api/v1", tags=["Async Pipeline"])
+app.include_router(ai_tools.router, prefix="/api/v1", tags=["AI Smart Tools"])
 
 
 class AsyncExportRequest(BaseModel):

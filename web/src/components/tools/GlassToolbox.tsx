@@ -1,47 +1,120 @@
 'use client';
 
 import { useStudioStore } from '@/store/useStudioStore';
-import { MousePointer2, Wand2, PaintBucket, Bandage, Copy } from 'lucide-react';
-import { cn } from '@/lib/utils'; // standard shadcn class merger
+import type { ToolId } from '@/store/useStudioStore';
+import { motion } from 'framer-motion';
+import {
+  MousePointer2, Lasso, Wand2, Crosshair,
+  Brush, Pencil, Eraser, PaintBucket, Blend,
+  Copy, Pipette, ZoomIn, Hand,
+  Sparkles, Bandage, RefreshCw,
+  ChevronDown,
+} from 'lucide-react';
+
+interface ToolGroup {
+  label: string;
+  tools: Array<{ id: ToolId; icon: React.ElementType; label: string; badge?: string }>;
+}
+
+const TOOL_GROUPS: ToolGroup[] = [
+  {
+    label: 'Selection',
+    tools: [
+      { id: 'cursor',       icon: MousePointer2, label: 'Move / Select' },
+      { id: 'lasso',        icon: Lasso,         label: 'Lasso Select' },
+      { id: 'magic-wand',   icon: Wand2,         label: 'Magic Wand' },
+      { id: 'quick-select', icon: Crosshair,     label: 'Quick Select' },
+    ],
+  },
+  {
+    label: 'AI Tools',
+    tools: [
+      { id: 'ai-trace', icon: Sparkles, label: 'SAM 2 Magic Trace', badge: 'AI' },
+      { id: 'heal',     icon: Bandage,  label: 'Smart Healing Brush', badge: 'AI' },
+    ],
+  },
+  {
+    label: 'Drawing',
+    tools: [
+      { id: 'brush',       icon: Brush,       label: 'Brush' },
+      { id: 'pencil',      icon: Pencil,      label: 'Pencil (Aliased)' },
+      { id: 'eraser',      icon: Eraser,      label: 'Eraser' },
+      { id: 'fill',        icon: PaintBucket, label: 'Fill (Flood)' },
+      { id: 'gradient',    icon: Blend,       label: 'Gradient Fill' },
+      { id: 'clone-stamp', icon: Copy,        label: 'Clone Stamp' },
+      { id: 'mirror',      icon: RefreshCw,   label: 'Mirror Kali' },
+    ],
+  },
+  {
+    label: 'View',
+    tools: [
+      { id: 'eyedropper', icon: Pipette, label: 'Eyedropper' },
+      { id: 'zoom',       icon: ZoomIn,  label: 'Zoom' },
+      { id: 'hand',       icon: Hand,    label: 'Pan' },
+    ],
+  },
+];
 
 export default function GlassToolbox() {
-  const activeTool = useStudioStore((state) => state.activeTool);
-  const setActiveTool = useStudioStore((state) => state.setActiveTool);
-
-  const tools = [
-    { id: 'cursor', icon: MousePointer2, label: 'Selection' },
-    { id: 'ai-trace', icon: Wand2, label: 'SAM 2 Magic Trace' },
-    { id: 'heal', icon: Bandage, label: 'Auto-Heal Seams' },
-    { id: 'bucket', icon: PaintBucket, label: 'Index Color Swap' },
-    { id: 'mirror', icon: Copy, label: 'Mirror Kali' }
-  ];
+  const { activeTool, setActiveTool } = useStudioStore();
 
   return (
-    <div className="absolute left-6 top-24 z-50 flex flex-col gap-3 p-2 bg-slate-900/40 backdrop-blur-xl border border-slate-700/50 shadow-2xl rounded-2xl">
-      {tools.map((t) => {
-        const Icon = t.icon;
-        const isActive = activeTool === t.id;
-        return (
-          <button
-            key={t.id}
-            onClick={() => setActiveTool(t.id as any)}
-            title={t.label}
-            className={cn(
-              "p-3 rounded-xl transition-all duration-200 relative group flex items-center justify-center",
-              isActive 
-                ? "bg-[#38bdf8]/10 text-[#38bdf8] shadow-[inset_0_0_10px_rgba(56,189,248,0.2)] border border-[#38bdf8]/50" 
-                : "text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-transparent"
-            )}
-          >
-            <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-            
-            {/* Tooltip */}
-            <span className="absolute left-14 bg-slate-800 text-slate-200 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-slate-700 pointer-events-none">
-              {t.label}
-            </span>
-          </button>
-        );
-      })}
+    <div style={{
+      position: 'absolute', left: 12, top: 12, bottom: 12, zIndex: 50,
+      display: 'flex', flexDirection: 'column', gap: 2,
+      padding: '8px 6px',
+      background: 'rgba(15,17,23,0.85)',
+      backdropFilter: 'blur(16px)',
+      border: '1px solid var(--border-hover)',
+      borderRadius: 'var(--radius-md)',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+      overflowY: 'auto',
+      width: 48,
+    }}>
+      {TOOL_GROUPS.map((group, gi) => (
+        <div key={group.label}>
+          {gi > 0 && <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />}
+          {group.tools.map((t) => {
+            const Icon = t.icon;
+            const isActive = activeTool === t.id;
+            return (
+              <motion.button
+                key={t.id}
+                title={t.label}
+                onClick={() => setActiveTool(t.id)}
+                whileHover={{ scale: 1.1, backgroundColor: isActive ? 'var(--accent-gold-dim)' : 'var(--bg-hover)' }}
+                whileTap={{ scale: 0.9 }}
+                animate={{
+                  backgroundColor: isActive ? 'var(--accent-gold-dim)' : 'transparent',
+                  color: isActive ? 'var(--accent-gold)' : 'var(--text-muted)',
+                  boxShadow: isActive ? 'inset 0 0 0 1px rgba(201,168,76,0.4)' : 'inset 0 0 0 0px transparent',
+                }}
+                transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                style={{
+                  width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  borderRadius: 'var(--radius-sm)', cursor: 'pointer', border: 'none',
+                  position: 'relative',
+                }}
+              >
+                <Icon size={15} strokeWidth={isActive ? 2.5 : 2} />
+                {t.badge && (
+                  <motion.span
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    style={{
+                      position: 'absolute', top: 2, right: 2, fontSize: 6, lineHeight: 1,
+                      background: 'var(--accent-purple)', color: '#fff',
+                      borderRadius: 3, padding: '1px 2px', fontWeight: 700,
+                    }}
+                  >
+                    AI
+                  </motion.span>
+                )}
+              </motion.button>
+            );
+          })}
+        </div>
+      ))}
     </div>
   );
 }

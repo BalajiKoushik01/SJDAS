@@ -1,8 +1,11 @@
 from celery import Celery
 import time
+import logging
 import numpy as np
 from backend.services.kali_engine import generate_tapered_kali, stitch_master_file
 from backend.services.bmp_compiler import export_to_indexed_bmp
+
+logger = logging.getLogger(__name__)
 
 # Connect Celery to Redis broker (Default local for development)
 celery_app = Celery('sjdas_tasks', broker='redis://localhost:6379/0', backend='redis://localhost:6379/0')
@@ -43,7 +46,33 @@ def generate_saree_master_file(self, design_data):
     ]
     
     file_path = export_to_indexed_bmp(master_matrix, factory_inventory_palette, output_filename="client_ready_file.bmp")
-    
+
     # 5. Done. Return the download URL to the WebSocket.
-    final_file_url = f"https://sjdas.cloud/downloads/client_ready_file.bmp"  # In dev, this would point to a local static route
-    return final_file_url
+    logger.info("Loom file compiled: %s", file_path)
+    return "https://sjdas.cloud/downloads/client_ready_file.bmp"
+
+
+@celery_app.task(bind=True)
+def run_decode_pipeline(self, params: dict):
+    """
+    6-step Screenshot → Loom decode pipeline (Celery async).
+    Pushes progress via Celery state; WebSocket endpoint in main.py polls and streams.
+    """
+    from backend.services.decode_service import run_full_pipeline, DecodeParams
+    import dataclasses
+
+    task_id = params.get('task_id', self.request.id)
+    decode_params = DecodeParams(
+        image_path=params['image_path'],
+        hook_count=params.get('hook_count', 600),
+        ends_ppi=params.get('ends_ppi', 80),
+        color_count=params.get('color_count', 6),
+        style_override=params.get('style_override'),
+    )
+
+    def on_progress(step: int, total: int, message: str):
+        progress = int((step / total) * 100)
+        self.update_state(state='PROGRESS', meta={'progress': progress, 'message': message, 'task_id': task_id})
+
+    result = run_full_pipeline(decode_params, progress_callback=on_progress)
+    return dataclasses.asdict(result)

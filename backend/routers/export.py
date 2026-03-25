@@ -18,6 +18,10 @@ class ExportResponse(BaseModel):
     status: str
     url: str
 
+from backend.services.float_checker import check_floats
+
+# ... (inside router)
+
 @router.post("/generate-loom-file")
 async def generate_loom_file(
     file: UploadFile = File(...),
@@ -26,6 +30,7 @@ async def generate_loom_file(
     """
     Receives the giant UI matrix from frontend (or reads the shadow canvas), 
     and mathematically exports to the strict 8-bit indexed BMP format.
+    Runs proactive Float Checking before export.
     """
     # 1. Read the uploaded raw array
     file_bytes = np.frombuffer(await file.read(), np.uint8)
@@ -42,7 +47,22 @@ async def generate_loom_file(
         (192, 192, 192)  # Silver
     ]
     
-    # 3. Export to Indexed BMP
+    # 3. Float Validation
+    # We convert grayscale to binary (0, 1) to test warp/weft floats
+    _, binary_matrix = cv2.threshold(image_matrix, 127, 1, cv2.THRESH_BINARY)
+    float_report = check_floats(binary_matrix, max_float=15)
+    
+    if float_report["status"] == "FAIL":
+        # Reject export if critical floats exist
+        raise HTTPException(
+            status_code=422, 
+            detail={
+                "message": "Export failed due to float violations.",
+                "report": float_report
+            }
+        )
+    
+    # 4. Export to Indexed BMP
     output_filename = "saree_production_file.bmp"
     export_to_indexed_bmp(
         master_matrix=image_matrix, 
