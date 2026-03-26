@@ -26,14 +26,15 @@ class ToolbarFactory:
         self.view = view
 
     def create_tool_strip(self) -> QFrame:
-        """Create professional scrollable tool strip with full names"""
+        """Create professional scrollable tool strip with Fluent Icons"""
         from PyQt6.QtWidgets import QScrollArea
+        from qfluentwidgets import TransparentToolButton, FluentIcon as FIF
 
         # Main container
         container = QFrame()
         container.setObjectName("toolStripContainer")
-        container.setMinimumWidth(48)  # Icon-only mode
-        container.setMaximumWidth(200)  # Full width
+        container.setMinimumWidth(56)  # Icon-only mode
+        container.setMaximumWidth(200)
 
         # Scrollable area
         scroll = QScrollArea()
@@ -48,50 +49,44 @@ class ToolbarFactory:
         tool_strip.setObjectName("toolStrip")
 
         # Glass theme styling handled by apple_glass.qss
-        # The IDs 'toolStripContainer' and 'toolStrip' are targeted there.
-
         layout = QVBoxLayout(tool_strip)
-        layout.setContentsMargins(12, 16, 12, 16)
-        layout.setSpacing(12)  # Better spacing between tools
+        layout.setContentsMargins(8, 16, 8, 16)
+        layout.setSpacing(8)
 
-        # Professional tools with full names
+        # Professional tools with Proper Fluent Icons
         tools = [
-            ("🔲", "Select", "select"),
-            ("⬚", "Marquee", "marquee"),
-            ("🔗", "Lasso", "lasso"),
-            ("✨", "Magic Wand", "magic_wand"),
-            ("✂️", "Crop", "crop"),
-            ("💧", "Eyedropper", "eyedropper"),
-            ("🩹", "Healing", "heal"),
-            ("🖌️", "Brush", "brush"),
-            ("📋", "Clone", "clone"),
-            ("⏱️", "History", "history"),
-            ("🧹", "Eraser", "eraser"),
-            ("🌈", "Gradient", "gradient"),
-            ("☀️", "Dodge/Burn", "dodge"),
-            ("🖊️", "Pen", "pen"),
-            ("📝", "Text", "text"),
-            ("📍", "Path Select", "path_select"),
-            ("⬟", "Shape", "shape"),
-            ("✋", "Hand", "pan"),
-            ("🔍", "Zoom", "zoom"),
+            (FIF.FULL_SCREEN, "Select", "select"),
+            (FIF.LAYOUT, "Marquee", "marquee"),
+            (FIF.LINK, "Lasso", "lasso"),
+            (FIF.IOT, "Magic Wand", "magic_wand"),
+            (FIF.CROP, "Crop", "crop"),
+            (FIF.COLOR_SOLID, "Eyedropper", "eyedropper"),
+            (FIF.BANDAID, "Healing", "heal"),
+            (FIF.BRUSH, "Brush", "brush"),
+            (FIF.COPY, "Clone", "clone"),
+            (FIF.HISTORY, "History", "history"),
+            (FIF.ERASER, "Eraser", "eraser"),
+            (FIF.PALETTE, "Gradient", "gradient"),
+            (FIF.SUN, "Dodge/Burn", "dodge"),
+            (FIF.EDIT, "Pen", "pen"),
+            (FIF.FONT, "Text", "text"),
+            (FIF.PIN, "Path Select", "path_select"),
+            (FIF.SHAPES, "Shape", "shape"),
+            (FIF.HAND_DRAWN, "Hand", "pan"),
+            (FIF.ZOOM, "Zoom", "zoom"),
         ]
 
         self.view.tool_buttons = {}
         for icon, name, tool_id in tools:
-            btn = QPushButton(f"{icon}  {name}")
-            btn.setCheckable(True)
+            btn = TransparentToolButton(icon)
             btn.setToolTip(f"{name} Tool")
+            btn.setFixedSize(40, 40)
             btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
             # Connect to view's handler
             btn.clicked.connect(lambda checked,
                                 tid=tool_id: self.view.on_tool_selected(tid))
-            layout.addWidget(btn)
+            layout.addWidget(btn, alignment=Qt.AlignmentFlag.AlignHCenter)
             self.view.tool_buttons[tool_id] = btn
-
-        # Set first tool as active default
-        if "select" in self.view.tool_buttons:
-            self.view.tool_buttons["select"].setChecked(True)
 
         layout.addStretch()
 

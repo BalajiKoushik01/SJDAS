@@ -118,30 +118,246 @@ class PanelFactory:
         return self.view.weaves_panel
 
     def create_ai_panel(self):
-        # Professional AI Chat Interface
-        from sj_das.ui.components.ai_chat_panel import AIChatPanel
-        panel = AIChatPanel()
-        panel.action_requested.connect(self.view.on_ai_action)
+        """
+        A comprehensive, categorized AI Toolbox panel.
+        Every implemented AI method in modern_designer_view.py is wired here.
+        """
+        from PyQt6.QtCore import Qt
+        from PyQt6.QtWidgets import QScrollArea, QSizePolicy
+        from qfluentwidgets import (CollapsibleWidgetItem, FluentIcon as FIF,
+                                     PrimaryPushButton, PushButton,
+                                     SubtitleLabel, TitleLabel)
 
-        # We can also keep the buttons if needed, wrapping them
         container = QWidget()
-        layout = QVBoxLayout(container)
-        layout.setContentsMargins(0, 0, 0, 0)
+        container.setObjectName("aiToolboxPanel")
+        outer_layout = QVBoxLayout(container)
+        outer_layout.setContentsMargins(0, 0, 0, 0)
+        outer_layout.setSpacing(0)
 
-        # Chat takes most space
-        layout.addWidget(panel)
+        # Header
+        header = QWidget()
+        header.setFixedHeight(44)
+        header.setObjectName("panelHeader")
+        header_layout = QVBoxLayout(header)
+        header_layout.setContentsMargins(12, 6, 12, 6)
+        lbl = SubtitleLabel("🤖  AI Toolbox")
+        lbl.setObjectName("panelTitle")
+        header_layout.addWidget(lbl)
+        outer_layout.addWidget(header)
 
-        # Add quick action buttons below chat
-        btn_layout = QVBoxLayout()
-        btn_layout.setContentsMargins(10, 0, 10, 10)
+        # Scrollable area for all buttons
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
 
-        btn_generate = FluentPushButton("✨ Generate Variations")
-        btn_generate.clicked.connect(self.view.generate_variations)
-        btn_layout.addWidget(btn_generate)
+        inner = QWidget()
+        inner.setObjectName("aiToolboxInner")
+        layout = QVBoxLayout(inner)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(6)
 
-        layout.addLayout(btn_layout)
+        v = self.view  # shorthand
+
+        # ── GENERATION ────────────────────────────────────────────────
+        layout.addWidget(self._section_label("Generation"))
+
+        btn = PrimaryPushButton("✨  AI Pattern Generator")
+        btn.setIcon(FIF.ROBOT)
+        btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        btn.clicked.connect(v.show_ai_pattern_gen)
+        layout.addWidget(btn)
+
+        btn = PushButton("↗️  Generate Variations")
+        btn.setIcon(FIF.TILES)
+        btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        btn.clicked.connect(v.generate_variations)
+        layout.addWidget(btn)
+
+        btn = PushButton("✏️  Sketch → Design (ControlNet)")
+        btn.setIcon(FIF.PENCIL_INK)
+        btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        btn.clicked.connect(v.generate_from_sketch_controlnet)
+        layout.addWidget(btn)
+
+        # ── SEGMENTATION & SELECTION ──────────────────────────────────
+        layout.addWidget(self._section_label("Segmentation & Selection"))
+
+        btn = PrimaryPushButton("🧩  Auto-Segment (SAM2)")
+        btn.setIcon(FIF.PHOTO)
+        btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        btn.clicked.connect(v.auto_segment)
+        layout.addWidget(btn)
+
+        btn = PushButton("🪄  Smart Select (Click)")
+        btn.setIcon(FIF.IOT)
+        btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        btn.clicked.connect(v.activate_smart_select)
+        layout.addWidget(btn)
+
+        btn = PushButton("🔍  Smart Find (OWL-ViT)")
+        btn.setIcon(FIF.SEARCH)
+        btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        btn.clicked.connect(v.open_smart_search)
+        layout.addWidget(btn)
+
+        btn = PushButton("🧹  Magic Eraser (AI)")
+        btn.setIcon(FIF.DELETE)
+        btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        btn.clicked.connect(v.activate_magic_eraser)
+        layout.addWidget(btn)
+
+        btn = PushButton("🚫  Remove Background")
+        btn.setIcon(FIF.CUT)
+        btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        btn.clicked.connect(v.apply_remove_background)
+        layout.addWidget(btn)
+
+        # ── ENHANCEMENT ───────────────────────────────────────────────
+        layout.addWidget(self._section_label("Enhancement"))
+
+        btn = PrimaryPushButton("⬆️  Upscale 4x (Real-ESRGAN)")
+        btn.setIcon(FIF.ZOOM_IN)
+        btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        btn.clicked.connect(v.apply_ai_upscale_4x)
+        layout.addWidget(btn)
+
+        btn = PushButton("⬆️  Upscale 2x")
+        btn.setIcon(FIF.ZOOM_IN)
+        btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        btn.clicked.connect(v.apply_ai_upscale_2x)
+        layout.addWidget(btn)
+
+        btn = PushButton("🎨  Colorize B&W")
+        btn.setIcon(FIF.PALETTE)
+        btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        btn.clicked.connect(v.apply_colorization)
+        layout.addWidget(btn)
+
+        btn = PushButton("🖼️  Style Transfer")
+        btn.setIcon(FIF.BRUSH)
+        btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        btn.clicked.connect(v.apply_style_transfer)
+        layout.addWidget(btn)
+
+        btn = PushButton("🌊  Depth Map (3D Relief)")
+        btn.setIcon(FIF.MAP)
+        btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        btn.clicked.connect(v.apply_depth_map)
+        layout.addWidget(btn)
+
+        # ── TEXTILE AI ─────────────────────────────────────────────────
+        layout.addWidget(self._section_label("Textile AI"))
+
+        btn = PrimaryPushButton("👗  Human Draping (Parsing)")
+        btn.setIcon(FIF.PEOPLE)
+        btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        btn.clicked.connect(v.apply_human_parsing)
+        layout.addWidget(btn)
+
+        btn = PushButton("🧵  Apply Weave Simulation")
+        btn.setIcon(FIF.GRID)
+        btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        btn.clicked.connect(v.apply_weave)
+        layout.addWidget(btn)
+
+        btn = PushButton("🔬  Fabric Simulation")
+        btn.setIcon(FIF.EXPERIENCE)
+        btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        btn.clicked.connect(v.show_fabric_simulation)
+        layout.addWidget(btn)
+
+        btn = PushButton("🐛  Defect Scan")
+        btn.setIcon(FIF.WARNING)
+        btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        btn.clicked.connect(v.show_defect_scan)
+        layout.addWidget(btn)
+
+        btn = PushButton("🔁  Detect Pattern")
+        btn.setIcon(FIF.TILES)
+        btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        btn.clicked.connect(v.detect_pattern_from_image)
+        layout.addWidget(btn)
+
+        btn = PushButton("💰  Costing Report")
+        btn.setIcon(FIF.MARKET)
+        btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        btn.clicked.connect(v.show_costing_report)
+        layout.addWidget(btn)
+
+        btn = PushButton("🧱  Export to Loom (.WIF)")
+        btn.setIcon(FIF.SAVE)
+        btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        btn.clicked.connect(v.export_to_loom)
+        layout.addWidget(btn)
+
+        btn = PushButton("🏛  3D Fabric View")
+        btn.setIcon(FIF.DEVELOPER_TOOLS)
+        btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        btn.clicked.connect(v.show_3d_fabric_view)
+        layout.addWidget(btn)
+
+        # ── VISION & ANALYSIS ──────────────────────────────────────────
+        layout.addWidget(self._section_label("Vision & Analysis"))
+
+        btn = PushButton("🧪  Run AI Analysis")
+        btn.setIcon(FIF.ROBOT)
+        btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        btn.clicked.connect(v.run_ai_analysis)
+        layout.addWidget(btn)
+
+        btn = PushButton("📸  Extract Sketch (Vision)")
+        btn.setIcon(FIF.PHOTO)
+        btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        btn.clicked.connect(v.extract_sketch_ai)
+        layout.addWidget(btn)
+
+        btn = PushButton("🖥️  Recover from Screenshot")
+        btn.setIcon(FIF.CAMERA)
+        btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        btn.clicked.connect(v.recover_design_from_screenshot)
+        layout.addWidget(btn)
+
+        # ── ASSISTANT ─────────────────────────────────────────────────
+        layout.addWidget(self._section_label("Assistant"))
+
+        btn = PrimaryPushButton("🎤  Voice Agent")
+        btn.setIcon(FIF.MICROPHONE)
+        btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        btn.clicked.connect(v.activate_voice_control)
+        layout.addWidget(btn)
+
+        btn = PushButton("💬  AI Chat Assistant")
+        btn.setIcon(FIF.CHAT)
+        btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        btn.clicked.connect(v.activate_ai_chat)
+        layout.addWidget(btn)
+
+        btn = PushButton("🤝  Toggle AI Copilot")
+        btn.setIcon(FIF.ROBOT)
+        btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        btn.clicked.connect(v.toggle_copilot)
+        layout.addWidget(btn)
+
+        layout.addStretch()
+        scroll.setWidget(inner)
+        outer_layout.addWidget(scroll)
 
         return container
+
+    @staticmethod
+    def _section_label(text: str) -> QLabel:
+        """Create a styled section divider label."""
+        lbl = QLabel(f"  {text}")
+        lbl.setFixedHeight(26)
+        lbl.setStyleSheet(
+            "background: #1E3A8A; color: #BAE6FD; font-size: 11px; "
+            "font-weight: 700; letter-spacing: 0.8px; "
+            "border-radius: 4px; padding-left: 6px; "
+            "text-transform: uppercase;"
+        )
+        return lbl
 
     def create_layers_panel(self):
         self.view.layers_panel = LayersPanel()

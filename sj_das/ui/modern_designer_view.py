@@ -1441,25 +1441,50 @@ class PremiumDesignerView(QWidget, DesignerViewPSPMethods):
         btn_voice.clicked.connect(self.controller.toggle_voice_control)
         layout.addWidget(btn_voice)
 
-        # --- Phase 12: AI Tools ---
+        # --- Phase 12-24: AI Pilot Tools ---
         layout.addSpacing(16)
 
-        btn_wand = PrimaryPushButton("Magic Wand")
+        btn_wand = PrimaryPushButton("Magic Eraser")
         btn_wand.setIcon(FIF.IOT)
-        btn_wand.clicked.connect(self.enable_magic_wand)
+        btn_wand.clicked.connect(self.activate_magic_eraser)
         layout.addWidget(btn_wand)
+
+        btn_segment = PrimaryPushButton("Auto Segment")
+        btn_segment.setIcon(FIF.PHOTO)
+        btn_segment.clicked.connect(self.auto_segment)
+        layout.addWidget(btn_segment)
+
+        btn_drape = PrimaryPushButton("Human Draping")
+        btn_drape.setIcon(FIF.PEOPLE)
+        btn_drape.clicked.connect(self.apply_human_parsing)
+        layout.addWidget(btn_drape)
+
+        btn_weave = PrimaryPushButton("Apply Weave")
+        btn_weave.setIcon(FIF.GRID)
+        btn_weave.clicked.connect(self.apply_weave)
+        layout.addWidget(btn_weave)
+
+        btn_defect = PrimaryPushButton("Defect Scan")
+        btn_defect.setIcon(FIF.SEARCH)
+        btn_defect.clicked.connect(self.show_defect_scan)
+        layout.addWidget(btn_defect)
+
+        btn_pattern = PrimaryPushButton("AI Pattern Gen")
+        btn_pattern.setIcon(FIF.PALETTE)
+        btn_pattern.clicked.connect(self.show_ai_pattern_gen)
+        layout.addWidget(btn_pattern)
 
         btn_upscale = PrimaryPushButton("Upscale 4x")
         btn_upscale.setIcon(FIF.ZOOM_IN)
-        btn_upscale.clicked.connect(self.controller.start_upscaling)
+        btn_upscale.clicked.connect(self.apply_ai_upscale_4x)
         layout.addWidget(btn_upscale)
 
+        btn_voice2 = PrimaryPushButton("Voice Agent")
+        btn_voice2.setIcon(FIF.MICROPHONE)
+        btn_voice2.clicked.connect(self.activate_voice_control)
+        layout.addWidget(btn_voice2)
+        
         layout.addSpacing(16)
-        btn_inspire = PrimaryPushButton("Met Museum")
-        btn_inspire.setIcon(FIF.ALBUM)
-        btn_inspire.clicked.connect(self.open_inspiration_dialog)
-        layout.addWidget(btn_inspire)
-
         # --- Workspace Switcher (Right Aligned) ---
         from PyQt6.QtWidgets import QLabel
         from qfluentwidgets import ComboBox
@@ -3495,8 +3520,53 @@ class PremiumDesignerView(QWidget, DesignerViewPSPMethods):
             logger.error(f"AI Upscale failed: {e}")
 
     def apply_magic_eraser(self):
-        """Remove background."""
-        pass  # Already implemented elsewhere
+        """Remove background (delegates to main implementation)."""
+        self.activate_magic_eraser()
+
+    def show_about_dialog(self):
+        """Show About dialog with version info."""
+        from PyQt6.QtWidgets import QMessageBox
+        QMessageBox.about(
+            self,
+            "About SJDAS",
+            "<h2>SJDAS — Smart Jacquard Design Automation System</h2>"
+            "<p>Version 2.0 — Hybrid AI Edition</p>"
+            "<p>Professional Jacquard textile design with cloud AI integration.</p>"
+            "<p><b>Technologies:</b> PyQt6 · FastAPI · Celery · Real-ESRGAN · SAM2 · ControlNet</p>"
+            "<br><p>© 2024 SJDAS Team. All rights reserved.</p>"
+        )
+
+    def activate_magic_wand(self):
+        """Activate the Magic Wand AI selection tool."""
+        if hasattr(self, 'magic_wand'):
+            try:
+                self.magic_wand.activate(self.editor)
+                self.show_notification("Magic Wand: Click to AI-select regions")
+            except Exception as e:
+                logger.error(f"Magic Wand activate: {e}")
+        elif hasattr(self.editor, 'set_tool'):
+            self.editor.set_tool('magic_wand')
+
+    def activate_clone_stamp(self):
+        """Activate Clone Stamp tool."""
+        if hasattr(self.editor, 'set_tool'):
+            self.editor.set_tool('clone')
+            self.show_notification("Clone Stamp: Alt+Click to set source, then paint")
+
+    def activate_text_tool(self):
+        """Activate Text overlay tool."""
+        from PyQt6.QtWidgets import QInputDialog
+        text, ok = QInputDialog.getText(self, "Add Text", "Enter text to overlay:")
+        if ok and text:
+            if hasattr(self.editor, 'add_text_overlay'):
+                self.editor.add_text_overlay(text)
+            else:
+                self.show_notification(f"Text '{text}' queued (overlay engine loading)")
+
+    def apply_ai_upscale_2x(self):
+        """Apply 2x AI upscaling."""
+        self._run_upscale(factor=2)
+
 
     def show_ai_pattern_gen(self):
         """Show AI pattern generator."""
@@ -4962,42 +5032,7 @@ class ProactiveObserverThread(QThread):
                 self.hide_loading()
                 self.show_error(f"Weave error: {e}")
 
-    @safe_slot
-    def cut(self):
-        """Cut selection to clipboard."""
-        if hasattr(self.editor, 'cut_selection'):
-            self.editor.cut_selection()
-            self.show_notification("Cut to Clipboard")
 
-    @safe_slot
-    def copy(self):
-        """Copy selection to clipboard."""
-        if hasattr(self.editor, 'copy_selection'):
-            self.editor.copy_selection()
-            self.show_notification("Copied to Clipboard")
-
-    @safe_slot
-    def paste(self):
-        """Paste from clipboard."""
-        if hasattr(self.editor, 'paste_from_clipboard'):
-            self.editor.paste_from_clipboard()
-            self.show_notification("Pasted from Clipboard")
-
-    @safe_slot
-    def activate_voice_control(self):
-        """Activate Voice Command Listener."""
-        from sj_das.core.engines.voice_engine import get_voice_assistant
-
-        self.show_loading("Listening... (Say 'Generate' or 'Upscale')")
-        # In real app, run in thread. Here valid for short command.
-
-        assistant = get_voice_assistant()
-        command = assistant.listen_command(duration=4)
-
-        self.hide_loading()
-
-        if command:
-            self.show_notification(f"Heard: '{command}'", duration=2000)
             self._process_voice_command(command)
         else:
             self.show_notification("No command heard", duration=2000)

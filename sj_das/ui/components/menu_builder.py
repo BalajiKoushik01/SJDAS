@@ -144,22 +144,27 @@ class StandardMenuBuilder:
             Action(
                 FIF.CHECKBOX,
                 "Select All",
-                triggered=lambda: None))
-        menu.addAction(Action(FIF.CANCEL, "Deselect", triggered=lambda: None))
+                triggered=lambda: self.view.editor.select_all()
+                if hasattr(self.view.editor, 'select_all') else None))
+        menu.addAction(Action(FIF.CANCEL, "Deselect All",
+                              triggered=lambda: self.view.editor.clear_selection()
+                              if hasattr(self.view.editor, 'clear_selection') else None))
+        menu.addAction(Action(FIF.IOT, "Magic Wand Select",
+                              triggered=self.view.activate_magic_wand))
+        menu.addAction(Action(FIF.SEARCH, "Smart Find (AI)",
+                              triggered=self.view.open_smart_search))
         menu.addSeparator()
 
         # Layers
-        menu.addAction(Action(FIF.ADD, "New Layer", triggered=lambda: None))
+        menu.addAction(Action(FIF.ADD, "New Layer",
+                              triggered=lambda: self.view.layers_panel.add_layer()
+                              if hasattr(self.view, 'layers_panel') else None))
         menu.addAction(
             Action(
                 FIF.DELETE,
                 "Delete Layer",
-                triggered=lambda: None))
-        menu.addSeparator()
-
-        # Filters
-        menu.addAction(Action(FIF.BRUSH, "Blur", triggered=lambda: None))
-        menu.addAction(Action(FIF.BRUSH, "Sharpen", triggered=lambda: None))
+                triggered=lambda: self.view.layers_panel.delete_layer()
+                if hasattr(self.view, 'layers_panel') else None))
         menu.addSeparator()
 
         # Colors
@@ -173,7 +178,9 @@ class StandardMenuBuilder:
                 FIF.PALETTE,
                 "Reduce to 16 Colors",
                 triggered=self.view.apply_smart_quantize_16))
-        
+        menu.addAction(Action(FIF.PALETTE, "Colorize B&W",
+                              triggered=self.view.apply_colorization))
+
         menu.addSeparator()
 
         # Adjustments Submenu
@@ -195,8 +202,8 @@ class StandardMenuBuilder:
         filt_menu.addAction(Action(FIF.BRUSH, "Pixelate", triggered=self.view.show_pixelate))
         filt_menu.addAction(Action(FIF.BRUSH, "Emboss", triggered=self.view.show_emboss))
         filt_menu.addAction(Action(FIF.BRUSH, "Halftone", triggered=self.view.show_halftone))
+        filt_menu.addAction(Action(FIF.BRUSH, "Style Transfer (AI)", triggered=self.view.apply_style_transfer))
         menu.addMenu(filt_menu)
-
 
         btn.setMenu(menu)
         self._add_btn(btn)
