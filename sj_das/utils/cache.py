@@ -188,7 +188,7 @@ def image_hash(image: QImage) -> str:
 
     # Create hash
     hash_input = f"{width}x{height}:{sample_data}"
-    return hashlib.md5(hash_input.encode()).hexdigest()
+    return hashlib.sha256(hash_input.encode()).hexdigest()
 
 
 def get_cache_stats() -> Dict[str, Any]:

@@ -42,18 +42,18 @@ const quickActions = [
 
 export default function DashboardPage() {
   return (
-    <div style={{ padding: '32px', maxWidth: 1200 }}>
+    <div style={{ padding: '32px' }}>
       {/* Header */}
       <div style={{ marginBottom: 32 }}>
         <div className="badge-purple" style={{ marginBottom: 12, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
           <Sparkles size={11} />
           <span>SJDAS v2.0 · Production Ready</span>
         </div>
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', margin: 0, lineHeight: 1.2 }}>
+        <h1 className="section-title" style={{ fontSize: 28 }}>
           Welcome back, <span style={{ color: 'var(--accent-gold)' }}>Balaji</span>
         </h1>
-        <p style={{ color: 'var(--text-secondary)', marginTop: 6, fontSize: 14 }}>
-          Your AI-powered Jacquard design studio. Your competitors don't have this.
+        <p className="section-subtitle" style={{ fontSize: 14 }}>
+          Minimal, intelligent workspace for textile teams with context-aware AI assistance.
         </p>
       </div>
 
@@ -104,6 +104,24 @@ export default function DashboardPage() {
             </Link>
           );
         })}
+      </div>
+
+      <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 16 }}>AI Command Center</h2>
+      <div className="glass-panel" style={{ padding: 18, marginBottom: 28 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+          <div>
+            <div className="mono" style={{ color: 'var(--accent-teal)', fontSize: 22, fontWeight: 700 }}>Always On</div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Context-aware Copilot for every core workflow</div>
+          </div>
+          <div>
+            <div className="mono" style={{ color: 'var(--accent-blue)', fontSize: 22, fontWeight: 700 }}>Tool Aware</div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Guidance adapts to selected tool and stage</div>
+          </div>
+          <div>
+            <div className="mono" style={{ color: 'var(--accent-gold)', fontSize: 22, fontWeight: 700 }}>Smart Defaults</div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Recommendations for safer exports and better quality</div>
+          </div>
+        </div>
       </div>
 
       {/* Recent Designs Placeholder */}

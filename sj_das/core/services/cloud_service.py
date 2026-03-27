@@ -3,6 +3,9 @@ import logging
 from typing import Any, Dict, Optional
 
 import requests
+import base64
+import numpy as np
+import cv2
 from PyQt6.QtCore import QObject, QThread, pyqtSignal
 
 logger = logging.getLogger("SJ_DAS.Cloud")
@@ -26,11 +29,11 @@ class CloudWorker(QThread):
             # Increased timeout for GenAI
             if self.method.upper() == 'POST':
                 if self.as_json:
-                    response = requests.post(self.url, json=self.data, headers=self.headers, timeout=30)
+                    response = requests.post(self.url, json=self.data, headers=self.headers, timeout=30, verify=True)
                 else:
-                    response = requests.post(self.url, data=self.data, headers=self.headers, timeout=30)
+                    response = requests.post(self.url, data=self.data, headers=self.headers, timeout=30, verify=True)
             else:
-                response = requests.get(self.url, headers=self.headers, timeout=30)
+                response = requests.get(self.url, headers=self.headers, timeout=30, verify=True)
                 
             response.raise_for_status()
 
@@ -71,7 +74,8 @@ class CloudService(QObject):
         super().__init__()
         self._cache = {}  # Simple in-memory cache
         self.active_workers = []  # Keep refs
-        self.api_base_url = "http://127.0.0.1:8000"
+        import os
+        self.api_base_url = os.getenv("SJDAS_API_URL", "https://api.sjdas.cloud")
         self.jwt_token = None
 
     @staticmethod
@@ -84,6 +88,37 @@ class CloudService(QObject):
         if self.jwt_token:
             return {"Authorization": f"Bearer {self.jwt_token}"}
         return {}
+
+    def _post(self, url: str, data: dict, is_json: bool = True):
+        """Internal helper for POST requests with Auth."""
+        try:
+            headers = self._get_auth_headers()
+            if is_json:
+                response = requests.post(url, json=data, headers=headers, timeout=60, verify=True)
+            else:
+                response = requests.post(url, data=data, headers=headers, timeout=60, verify=True)
+            response.raise_for_status()
+            return response
+        except Exception as e:
+            logger.error(f"Cloud POST Error: {e}")
+            return None
+
+    def backup_to_cloud(self, design_id: str, data: dict):
+        """Uploads design JSON to cloud for multi-device sync."""
+        url = f"{self.api_base_url}/api/v1/sync/backup"
+        return self._post(url, {"design_id": design_id, "data": data})
+
+    def generate_ai_design(self, prompt: str):
+        """Cloud-offloaded AI design generation."""
+        url = f"{self.api_base_url}/api/v1/ai/generate"
+        response = self._post(url, {"prompt": prompt}, is_json=False) # Form data
+        if response and response.status_code == 200:
+             resp_data = response.json()
+             img_data_str = resp_data["image_data"].split(",")[1]
+             img_bytes = base64.b64decode(img_data_str)
+             nparr = np.frombuffer(img_bytes, np.uint8)
+             return cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        return None
 
     def login(self, username, password):
         """Authenticate with the SJDAS Backend."""

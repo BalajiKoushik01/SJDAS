@@ -2,12 +2,36 @@
 import logging
 from typing import Any, Optional
 
-import numpy as np
+try:
+    import numpy as np
+except Exception:
+    import numpy as np # Forced if missing in some envs but needed for types
+
 from PyQt6.QtCore import QObject, QThread, pyqtSignal
 
-from sj_das.ai.flux_generator import FluxGenerator
-from sj_das.core.engines.llm.local_llm_engine import get_local_llm_engine
-from sj_das.core.engines.vision.sam_engine import SAMEngine
+try:
+    from sj_das.ai.flux_generator import FluxGenerator
+except Exception as e:
+    logging.warning(f"FluxGenerator unavailable: {e}")
+    FluxGenerator = None
+
+try:
+    from sj_das.core.engines.llm.local_llm_engine import get_local_llm_engine
+except Exception as e:
+    logging.warning(f"LocalLLMEngine unavailable: {e}")
+    get_local_llm_engine = None
+
+try:
+    from sj_das.core.engines.vision.sam_engine import SAMEngine
+except Exception as e:
+    logging.warning(f"SAMEngine unavailable: {e}")
+    SAMEngine = None
+
+try:
+    from sj_das.core.remote_ai import RemoteAIEngine
+except Exception as e:
+    logging.warning(f"RemoteAIEngine unavailable: {e}")
+    RemoteAIEngine = None
 
 logger = logging.getLogger("SJ_DAS.AIService")
 
@@ -66,8 +90,11 @@ class AIService(QObject):
         super().__init__()
         self.llm_engine = None
         self._flux = None
+        self._remote = None
         self._sam = None
         self._active_workers = []
+        # Fallback to cloud if local loading fails?
+        self.generation_mode = "hybrid" # local | cloud | remote
 
     def initialize_core_models(self):
         """Pre-load essential models in background."""
@@ -110,22 +137,39 @@ class AIService(QObject):
         worker.start()
         self._current_worker = worker
 
-    # --- Vision Capabilities (Switched to Flux) ---
-    def generate_pattern(self, prompt: str, **kwargs):
-        """Generate pattern using Flux.1 [schnell]."""
-        if not self._flux:
-            self._flux = FluxGenerator()
+    # --- Vision Capabilities (Hybrid: Local/Cloud/Remote) ---
+    def generate_pattern(self, prompt: str, mode: str = "hybrid", **kwargs):
+        """
+        Generate pattern using SOTA models.
+        Modes: 
+        - 'local': Uses Flux.1 [schnell] on local GPU.
+        - 'cloud': Uses SJDAS Backend API (allows offloading).
+        - 'remote': Uses direct Gemini/SDXL/Pollinations.
+        """
+        task_msg = f"Generating: {prompt[:20]}..."
+        self.task_started.emit(self.TASK_GEN, task_msg)
+        
+        # Decide physical engine
+        if mode == "cloud":
+            # Call Backend (Offloading)
+            from sj_das.core.services.cloud_service import CloudService
+            def cloud_task():
+                return CloudService.instance().generate_ai_design(prompt)
+            worker = AIWorker(cloud_task)
+        elif mode == "remote" or (mode == "hybrid" and not FluxGenerator):
+            # Call Direct APIs (Gemini/Pollinations)
+            if not self._remote:
+                self._remote = RemoteAIEngine()
+            worker = AIWorker(self._remote.generate_with_pollinations, prompt)
+        else:
+            # Local Flux (Performance King)
+            if not self._flux:
+                self._flux = FluxGenerator()
+            params = kwargs.get('params', prompt)
+            worker = AIWorker(self._flux.generate, params)
 
-        self.task_started.emit(self.TASK_GEN, f"Flux Generating: {prompt[:20]}...")
-        
-        # Extract params or use raw prompt
-        params = kwargs.get('params', prompt)
-        
-        worker = AIWorker(self._flux.generate, params)
         worker.finished.connect(self.generation_completed.emit)
-        worker.finished.connect(
-            lambda: self.task_completed.emit(
-                self.TASK_GEN))
+        worker.finished.connect(lambda: self.task_completed.emit(self.TASK_GEN))
         worker.error.connect(self.error_occurred.emit)
         worker.start()
         self._current_worker = worker

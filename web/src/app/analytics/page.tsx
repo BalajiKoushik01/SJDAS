@@ -27,6 +27,12 @@ const styleBreakdown = [
   { name: 'Other',      count: 0 },
 ];
 
+const decodeTrendHeights = [
+  18, 22, 25, 30, 24, 20, 28, 34, 31, 27,
+  29, 32, 35, 30, 26, 24, 33, 37, 40, 36,
+  31, 29, 34, 38, 42, 45, 40, 36, 32, 30,
+];
+
 export default function AnalyticsPage() {
   return (
     <div style={{ padding: '32px', maxWidth: 1200 }}>
@@ -54,8 +60,8 @@ export default function AnalyticsPage() {
         <div className="card">
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 16 }}>Decodes Per Day — Last 30 Days</div>
           <div style={{ height: 160, display: 'flex', alignItems: 'flex-end', gap: 6 }}>
-            {Array.from({ length: 30 }, (_, i) => (
-              <div key={i} style={{ flex: 1, background: 'var(--bg-active)', borderRadius: '2px 2px 0 0', height: `${Math.random() * 80 + 10}%`, transition: 'height 600ms ease-out' }} />
+            {decodeTrendHeights.map((value, i) => (
+              <div key={i} style={{ flex: 1, background: 'var(--bg-active)', borderRadius: '2px 2px 0 0', height: `${value}%`, transition: 'height 600ms ease-out' }} />
             ))}
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 11, color: 'var(--text-muted)' }}>

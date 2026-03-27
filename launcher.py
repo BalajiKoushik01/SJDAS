@@ -1,12 +1,26 @@
-
-from sj_das.ui.modern_main_window import create_modern_app
-from PyQt6.QtWidgets import QMessageBox
 import os
 import sys
-import traceback
 
 # Suppress Qt font warnings (cosmetic only, doesn't affect functionality)
 os.environ['QT_LOGGING_RULES'] = '*.debug=false;qt.qpa.*=false;qt.gui.font.*=false'
+
+# Fix Torch DLL initialization collision (WinError 1114)
+# We must set this before importing torch
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
+# Import AI/CV2 at the absolute top to avoid DLL race conditions with PyQt6
+try:
+    import torch
+    import cv2
+    import numpy as np
+    import moderngl
+    import glm
+except Exception:
+    pass
+
+from sj_das.ui.modern_main_window import create_modern_app
+from PyQt6.QtWidgets import QMessageBox
+import traceback
 
 
 # =============================================================================

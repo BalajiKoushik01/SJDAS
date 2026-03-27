@@ -57,12 +57,10 @@ class StandardMenuBuilder:
         )
         self._add_btn(btn_voice)
 
-        self.layout.addStretch()  # Push everything to the left
-
     def _add_btn(self, btn, add_spacing_after=False):
         """Add button with consistent sizing and optional spacing."""
         btn.setFixedHeight(34)  # Slightly taller for better touch targets
-        btn.setMinimumWidth(80)  # Minimum width for consistency
+        btn.setMinimumWidth(40)  # More compact for many buttons
         self.layout.addWidget(btn)
         if add_spacing_after:
             self.layout.addSpacing(8)  # Uniform spacing between groups

@@ -1,7 +1,17 @@
+import logging
 
-import numpy as np
-from rembg import remove
-from PIL import Image
+try:
+    import numpy as np
+    from rembg import remove
+    from PIL import Image
+    _LIBS_AVAILABLE = True
+except Exception as e:
+    logging.warning(f"SmartEraser: Libraries unavailable: {e}")
+    np = None
+    remove = None
+    Image = None
+    _LIBS_AVAILABLE = False
+
 import io
 from sj_das.utils.logger import logger
 
@@ -11,7 +21,7 @@ class SmartEraser:
     Uses U2Net (via rembg) for one-click subject isolation.
     """
     
-    def remove_background(self, image_data: np.ndarray) -> np.ndarray:
+    def remove_background(self, image_data: 'np.ndarray') -> 'np.ndarray':
         """
         Remove background from numpy image.
         Returns RGBA numpy array.

@@ -1,14 +1,16 @@
 from celery import Celery
 import time
 import logging
+import os
 import numpy as np
 from backend.services.kali_engine import generate_tapered_kali, stitch_master_file
 from backend.services.bmp_compiler import export_to_indexed_bmp
 
 logger = logging.getLogger(__name__)
 
-# Connect Celery to Redis broker (Default local for development)
-celery_app = Celery('sjdas_tasks', broker='redis://localhost:6379/0', backend='redis://localhost:6379/0')
+# Connect Celery to Redis broker (Configurable via REDIS_URL)
+redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+celery_app = Celery('sjdas_tasks', broker=redis_url, backend=redis_url)
 
 @celery_app.task(bind=True)
 def generate_saree_master_file(self, design_data):
@@ -48,8 +50,11 @@ def generate_saree_master_file(self, design_data):
     file_path = export_to_indexed_bmp(master_matrix, factory_inventory_palette, output_filename="client_ready_file.bmp")
 
     # 5. Done. Return the download URL to the WebSocket.
+    base_url = os.getenv('BASE_DOWNLOAD_URL', 'http://api.sjdas.cloud/downloads')
+    download_url = f"{base_url}/{os.path.basename(file_path)}"
+    
     logger.info("Loom file compiled: %s", file_path)
-    return "https://sjdas.cloud/downloads/client_ready_file.bmp"
+    return download_url
 
 
 @celery_app.task(bind=True)

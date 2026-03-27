@@ -56,7 +56,17 @@ const TOOL_GROUPS: ToolGroup[] = [
 ];
 
 export default function GlassToolbox() {
-  const { activeTool, setActiveTool } = useStudioStore();
+  const { activeTool, setActiveTool, addAIAlert } = useStudioStore();
+
+  const handleToolSelect = (toolId: ToolId, label: string) => {
+    setActiveTool(toolId);
+    addAIAlert({
+      id: `ai_tool_${toolId}`,
+      severity: 'info',
+      message: `Copilot: ${label} selected. Context-aware assistance is active for this tool.`,
+      dismissible: true,
+    });
+  };
 
   return (
     <div style={{
@@ -81,7 +91,7 @@ export default function GlassToolbox() {
               <motion.button
                 key={t.id}
                 title={t.label}
-                onClick={() => setActiveTool(t.id)}
+                onClick={() => handleToolSelect(t.id, t.label)}
                 whileHover={{ scale: 1.1, backgroundColor: isActive ? 'var(--accent-gold-dim)' : 'var(--bg-hover)' }}
                 whileTap={{ scale: 0.9 }}
                 animate={{

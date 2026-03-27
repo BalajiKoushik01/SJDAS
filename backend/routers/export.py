@@ -8,7 +8,7 @@ from backend.routers.auth import verify_token
 from backend.services.bmp_compiler import export_to_indexed_bmp
 
 router = APIRouter(
-    prefix="/api/v1/export",
+    prefix="/export",
     tags=["Export"],
     responses={404: {"description": "Not found"}},
 )

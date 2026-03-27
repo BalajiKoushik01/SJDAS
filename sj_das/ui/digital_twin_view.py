@@ -1,12 +1,31 @@
 import time
+import logging
 
-import moderngl
+try:
+    import moderngl
+    _MODERNGL_AVAILABLE = True
+except Exception as e:
+    logging.warning(f"DigitalTwin: moderngl not available: {e}")
+    moderngl = None
+    _MODERNGL_AVAILABLE = False
+
 from PyQt6.QtCore import Qt
 from PyQt6.QtOpenGLWidgets import QOpenGLWidget
-from PyQt6.QtWidgets import (QFileDialog, QHBoxLayout, QLabel, QPushButton,
-                             QSlider, QSpinBox, QVBoxLayout, QWidget)
+from PyQt6.QtWidgets import (QFileDialog, QHBoxLayout, QLabel, QMessageBox,
+                             QPushButton, QSlider, QSpinBox, QVBoxLayout, QWidget)
 
-from sj_das.core.renderer import FabricRenderer
+try:
+    import cv2
+    import numpy as np
+except Exception:
+    cv2 = None
+    np = None
+
+try:
+    from sj_das.core.renderer import FabricRenderer
+except Exception as e:
+    logging.warning(f"DigitalTwin: FabricRenderer not available: {e}")
+    FabricRenderer = None
 
 
 class DigitalTwinWidget(QOpenGLWidget):

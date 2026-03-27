@@ -1,5 +1,5 @@
 # SJDAS — Smart Jacquard Design Automation System
-## Product Bible v1.1 — Solo Founder Edition
+## Product Bible v2.1 — Enterprise Edition
 **Version:** 1.1 | **Date:** March 2026 | **Status:** ACTIVE — Living Document
 **Classification:** CONFIDENTIAL — Internal Use Only
 
@@ -36,9 +36,9 @@
 
 ### 1.1 What is SJDAS?
 
-SJDAS (Smart Jacquard Design Automation System) is an AI-native, web-first B2B SaaS platform built exclusively for the Indian power loom and Jacquard textile manufacturing industry. It bridges the gap between creative design and physical loom manufacturing by automating the most painful, slow, and error-prone parts of the entire workflow: design interpretation, pattern digitisation, weave structure mapping, and loom file generation.
+SJDAS (Smart Jacquard Design Automation System) is an AI-native, web-first B2B SaaS platform built exclusively for the industrial power loom and Jacquard textile manufacturing sector. It bridges the gap between creative design and physical loom manufacturing by automating the most intensive parts of the workflow: design interpretation, pattern digitisation, weave structure mapping, and loom file generation.
 
-The platform is built by a solo founder (you), targeting power loom owners and designers in Andhra Pradesh (Nellore, Dharmavaram, Ongole clusters) first, then scaling nationally.
+The platform is designed to scale globally, targeting industrial textile clusters with enterprise-grade reliability and security.
 
 ### 1.2 Core Mission
 
@@ -1978,7 +1978,8 @@ Your first 5 customers at ₹14,999/month = ₹74,995 MRR — infrastructure cos
 **Data protection:**
 - RDS encrypted at rest (AWS KMS)
 - S3 buckets: server-side encryption (SSE-S3 minimum, SSE-KMS for sensitive data)
-- All inter-service communication over TLS 1.3
+- All inter-service communication over **TLS 1.2+ with mandatory SSL verification** enforced in all network clients. ✓
+- **Supabase Row Level Security (RLS)**: Mandatory multi-tenant isolation at the database layer. ✓
 - Audit log: every design create/edit/export/delete, every loom push, every login — immutable append-only log in PostgreSQL
 
 ### 15.2 India DPDP Act Compliance
@@ -2277,14 +2278,14 @@ APP_ENV=production
 
 | Field | Value |
 |---|---|
-| Document Title | SJDAS Product Bible v1.1 — Solo Founder Edition |
-| Version | 1.1 |
+| Document Title | SJDAS Product Bible v2.1 — Enterprise Edition |
+| Version | 2.1 |
 | Date | March 2026 |
-| Author | Balaji Koushik |
-| Status | ACTIVE — Living Document |
-| Target Stack | Nellore cluster (Udayravi machines), Solo founder build |
-| Next Review | June 2026 |
-| Classification | CONFIDENTIAL — Internal Use Only |
+| Author | Balaji Koushik & SJDAS Engineering |
+| Status | ACTIVE — Production Ready |
+| Target Stack | Multi-tenant Industrial (FastAPI + Next.js + PyQt6) |
+| Next Review | September 2026 |
+| Classification | CONFIDENTIAL — Enterprise Grade |
 
 > **This is a living document.** Update it at every major decision point — new features, architecture changes, competitive moves, pivot decisions. All engineering, design, and business decisions should trace back to this document. Treat it as the single source of truth for everything SJDAS.
 

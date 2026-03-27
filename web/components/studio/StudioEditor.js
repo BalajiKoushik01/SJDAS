@@ -6,8 +6,8 @@ import {
     Layers, Eye, Lock, MoreHorizontal, Settings, ZoomIn, ZoomOut,
     Move, Download
 } from "lucide-react";
-import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar"; // Assuming this might exist or we build standard div
 import { motion } from "framer-motion";
+import Image from 'next/image';
 
 // ... imports
 import { API } from '@/lib/api';
@@ -90,7 +90,9 @@ export default function StudioEditor() {
                 >
                     {/* Canvas Content */}
                     {generatedImage ? (
-                        <img src={generatedImage} className="w-full h-full object-contain" alt="Generated Design" />
+                        <div className="relative w-full h-full">
+                            <Image src={generatedImage} fill unoptimized className="object-contain" alt="Generated Design" />
+                        </div>
                     ) : (
                         <div className="absolute inset-0 bg-neutral-100 flex items-center justify-center text-black/20 font-bold text-4xl select-none">
                             Canvas {800}x{600}

@@ -8,7 +8,7 @@ from backend.routers.auth import verify_token
 from backend.services.kali_engine import generate_tapered_kali, stitch_master_file
 
 router = APIRouter(
-    prefix="/api/v1/kali",
+    prefix="/kali",
     tags=["Multi-Panel Architecture"],
     responses={404: {"description": "Not found"}},
 )

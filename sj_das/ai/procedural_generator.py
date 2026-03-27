@@ -4,9 +4,17 @@ Creates loom-compatible designs using procedural techniques
 """
 
 import math
+import logging
 
-import cv2
-import numpy as np
+try:
+    import cv2
+    import numpy as np
+    _LIBS_AVAILABLE = True
+except Exception as e:
+    logging.warning(f"ProceduralGenerator: Libraries unavailable: {e}")
+    cv2 = None
+    np = None
+    _LIBS_AVAILABLE = False
 
 
 class ProceduralMotifLibrary:
@@ -14,7 +22,7 @@ class ProceduralMotifLibrary:
 
     @staticmethod
     def peacock(size: int = 64, color_main: tuple = (255, 0, 0),
-                color_accent: tuple = (255, 215, 0)) -> np.ndarray:
+                color_accent: tuple = (255, 215, 0)) -> 'np.ndarray':
         """Generate a peacock motif."""
         img = np.zeros((size, size, 3), dtype=np.uint8)
         center = size // 2
@@ -41,7 +49,7 @@ class ProceduralMotifLibrary:
 
     @staticmethod
     def lotus(size: int = 64, color_main: tuple = (255, 192, 203),
-              color_accent: tuple = (255, 255, 255)) -> np.ndarray:
+              color_accent: tuple = (255, 255, 255)) -> 'np.ndarray':
         """Generate a lotus motif."""
         img = np.zeros((size, size, 3), dtype=np.uint8)
         center = size // 2
@@ -69,7 +77,7 @@ class ProceduralMotifLibrary:
 
     @staticmethod
     def mango(size: int = 64, color_main: tuple = (0, 255, 0),
-              color_accent: tuple = (255, 215, 0)) -> np.ndarray:
+              color_accent: tuple = (255, 215, 0)) -> 'np.ndarray':
         """Generate a mango/paisley motif."""
         img = np.zeros((size, size, 3), dtype=np.uint8)
 
@@ -95,7 +103,7 @@ class ProceduralMotifLibrary:
 
     @staticmethod
     def geometric_diamond(size: int = 64, color_main: tuple = (0, 0, 255),
-                          color_accent: tuple = (255, 255, 255)) -> np.ndarray:
+                          color_accent: tuple = (255, 255, 255)) -> 'np.ndarray':
         """Generate a diamond geometric pattern."""
         img = np.zeros((size, size, 3), dtype=np.uint8)
         center = size // 2
@@ -124,7 +132,7 @@ class ProceduralMotifLibrary:
 
     @staticmethod
     def temple_arch(size: int = 64, color_main: tuple = (139, 69, 19),
-                    color_accent: tuple = (255, 215, 0)) -> np.ndarray:
+                    color_accent: tuple = (255, 215, 0)) -> 'np.ndarray':
         """Generate a temple architecture motif."""
         img = np.zeros((size, size, 3), dtype=np.uint8)
         center_x = size // 2
@@ -159,7 +167,7 @@ class ProceduralGenerator:
     def __init__(self):
         self.motif_lib = ProceduralMotifLibrary()
 
-    def generate_design(self, params) -> np.ndarray:
+    def generate_design(self, params) -> 'np.ndarray':
         """
         Generate a complete design from parameters.
 
@@ -167,7 +175,7 @@ class ProceduralGenerator:
             params: DesignParameters from prompt parser
 
         Returns:
-            np.ndarray: Generated design image (RGB)
+            'np.ndarray': Generated design image (RGB)
         """
         if params.design_type == 'border':
             return self.generate_border(params)
@@ -178,7 +186,7 @@ class ProceduralGenerator:
         else:
             return self.generate_border(params)  # Default
 
-    def generate_border(self, params) -> np.ndarray:
+    def generate_border(self, params) -> 'np.ndarray':
         """Generate a border design."""
         # Calculate dimensions
         width_px = params.width_mm if params.width_mm else 150
@@ -225,7 +233,7 @@ class ProceduralGenerator:
 
         return img
 
-    def generate_pallu(self, params) -> np.ndarray:
+    def generate_pallu(self, params) -> 'np.ndarray':
         """Generate a pallu design."""
         # Pallu is wider and more elaborate
         width_px = 512
@@ -271,7 +279,7 @@ class ProceduralGenerator:
 
         return img
 
-    def generate_blouse(self, params) -> np.ndarray:
+    def generate_blouse(self, params) -> 'np.ndarray':
         """Generate a blouse piece design."""
         # Blouse piece is smaller, coordinates with saree
         width_px = 512
@@ -311,7 +319,7 @@ class ProceduralGenerator:
         return img
 
     def _get_motif(self, motif_type: str, size: int,
-                   color_main: tuple, color_accent: tuple) -> np.ndarray:
+                   color_main: tuple, color_accent: tuple) -> 'np.ndarray':
         """Get a motif image."""
         if motif_type == 'peacock':
             return self.motif_lib.peacock(size, color_main, color_accent)
@@ -329,7 +337,7 @@ class ProceduralGenerator:
             return self.motif_lib.geometric_diamond(
                 size, color_main, color_accent)
 
-    def _blend_motif(self, img: np.ndarray, motif: np.ndarray, x: int, y: int):
+    def _blend_motif(self, img: 'np.ndarray', motif: 'np.ndarray', x: int, y: int):
         """Blend motif into image at position."""
         h, w = motif.shape[:2]
 
@@ -341,8 +349,8 @@ class ProceduralGenerator:
         mask = np.any(motif != [0, 0, 0], axis=-1)
         img[y:y + h, x:x + w][mask] = motif[mask]
 
-    def _add_zari_texture(self, img: np.ndarray,
-                          zari_color: tuple) -> np.ndarray:
+    def _add_zari_texture(self, img: 'np.ndarray',
+                          zari_color: tuple) -> 'np.ndarray':
         """Add metallic zari texture effect."""
         # Add subtle shimmer/texture
         texture = np.random.randint(-10, 10, img.shape, dtype=np.int16)

@@ -3,11 +3,15 @@ import os
 import sys
 from io import BytesIO
 from typing import List, Optional
+import logging
+import time
+import uuid
 
 import asyncio
 import cv2
 import numpy as np
-from fastapi import Body, FastAPI, HTTPException, WebSocket
+from fastapi import Body, FastAPI, HTTPException, Request, WebSocket
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
 from pydantic import BaseModel
@@ -29,7 +33,18 @@ except ImportError as e:
     get_procedural_generator = None
 
 # Import Routers
-from backend.routers import jules, auth, decode, export, factory, kali, decode_async, export_advanced, ai_tools
+from backend.routers import (
+    jules,
+    auth,
+    decode,
+    export,
+    factory,
+    kali,
+    decode_async,
+    export_advanced,
+    ai_tools,
+    premium,
+)
 from backend.tasks import generate_saree_master_file
 
 
@@ -39,16 +54,70 @@ app = FastAPI(
     version="2.0.0"
 )
 
-# CORS setup for interacting with Next.js
+logger = logging.getLogger("sjdas.backend")
+
+
+def _parse_allowed_origins() -> list[str]:
+    raw = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
+    origins = [origin.strip() for origin in raw.split(",") if origin.strip()]
+    return origins or ["http://localhost:3000"]
+
+
+def _validate_runtime_config() -> None:
+    app_env = os.getenv("APP_ENV", "development").lower()
+    if app_env == "production":
+        if os.getenv("JWT_SECRET_KEY", "change-me-in-production") == "change-me-in-production":
+            raise RuntimeError("JWT_SECRET_KEY must be set in production")
+        if os.getenv("ALLOW_LEGACY_TOKEN", "false").lower() == "true":
+            raise RuntimeError("ALLOW_LEGACY_TOKEN must be disabled in production")
+        if "*" in _parse_allowed_origins():
+            raise RuntimeError("ALLOWED_ORIGINS cannot include '*' in production")
+
+
+# CORS setup for interacting with web/desktop clients
+allowed_origins = _parse_allowed_origins()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, set to specific domain
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-app.include_router(jules.router, prefix="/jules", tags=["Jules"])
+@app.on_event("startup")
+async def validate_runtime_on_startup():
+    _validate_runtime_config()
+    logger.info("Backend startup config validated")
+
+
+@app.middleware("http")
+async def request_context_middleware(request: Request, call_next):
+    request_id = request.headers.get("x-request-id", str(uuid.uuid4()))
+    start = time.perf_counter()
+    try:
+        response = await call_next(request)
+    except Exception as exc:
+        logger.exception("Unhandled error request_id=%s path=%s", request_id, request.url.path)
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Internal server error", "request_id": request_id},
+        )
+    duration_ms = round((time.perf_counter() - start) * 1000, 2)
+    response.headers["X-Request-ID"] = request_id
+    logger.info(
+        "request_id=%s method=%s path=%s status=%s duration_ms=%s",
+        request_id,
+        request.method,
+        request.url.path,
+        response.status_code,
+        duration_ms,
+    )
+    return response
+
+
+app.include_router(jules.router, prefix="/api/v1/jules", tags=["Jules"])
+# Backward compatibility path for existing clients.
+app.include_router(jules.router, prefix="/jules", tags=["Jules (Legacy)"])
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
 app.include_router(decode.router, prefix="/api/v1", tags=["Analysis"])
 app.include_router(export.router, prefix="/api/v1", tags=["Export"])
@@ -57,6 +126,7 @@ app.include_router(factory.router, prefix="/api/v1", tags=["Factory"])
 app.include_router(kali.router, prefix="/api/v1", tags=["Multi-Panel Architecture"])
 app.include_router(decode_async.router, prefix="/api/v1", tags=["Async Pipeline"])
 app.include_router(ai_tools.router, prefix="/api/v1", tags=["AI Smart Tools"])
+app.include_router(premium.router, prefix="/api/v1", tags=["Premium"])
 
 
 class AsyncExportRequest(BaseModel):
@@ -138,6 +208,16 @@ def numpy_to_base64(img_array: np.ndarray) -> str:
 @app.get("/")
 async def root():
     return {"message": "SJ-DAS API is running"}
+
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
+
+@app.get("/ready")
+async def ready():
+    return {"status": "ready", "service": "sjdas-backend"}
 
 
 @app.post("/generate/procedural", response_model=GenerateResponse)

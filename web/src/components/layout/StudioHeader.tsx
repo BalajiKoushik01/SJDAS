@@ -3,6 +3,7 @@
 import { useStudioStore } from '@/store/useStudioStore';
 import { Play, Download, ChevronDown, Cloud, CheckCircle, Loader2, Grid3x3 } from 'lucide-react';
 import { useState } from 'react';
+import { apiV1 } from '@/lib/runtime';
 
 const EXPORT_FORMATS = ['BMP (Loom)', 'JC5 / Stäubli', 'WIF', 'SVG', 'DXF', 'PDF Sheet', 'PNG 300DPI'];
 
@@ -15,7 +16,7 @@ export default function StudioHeader() {
     setExporting(true);
     setExportOpen(false);
     try {
-      const res = await fetch('http://localhost:8000/api/v1/generate-loom-file-async', {
+      const res = await fetch(apiV1('/generate-loom-file-async'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ design_id: 'studio-active', hooks, kali_count: kalis, picks_height: 8000, format }),

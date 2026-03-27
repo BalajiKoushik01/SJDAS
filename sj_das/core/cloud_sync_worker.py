@@ -39,7 +39,7 @@ class CloudSyncWorker(QThread):
         self.progress_updated.emit(5, "Initiating Cloud Handshake...")
         try:
             logger.info(f"Triggering REST POST to {self.api_url}")
-            response = requests.post(self.api_url, json=self.payload, timeout=15)
+            response = requests.post(self.api_url, json=self.payload, timeout=15, verify=True)
             response.raise_for_status()
             
             data = response.json()

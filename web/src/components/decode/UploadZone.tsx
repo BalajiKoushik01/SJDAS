@@ -3,6 +3,7 @@
 import { useCallback, useState } from 'react';
 import { useStudioStore } from '@/store/useStudioStore';
 import { Upload, FileImage, X } from 'lucide-react';
+import Image from 'next/image';
 
 export default function UploadZone() {
   const setUploadedFile = useStudioStore((s) => s.setUploadedFile);
@@ -64,7 +65,9 @@ export default function UploadZone() {
       ) : (
         <div style={{ borderRadius: 'var(--radius-lg)', overflow: 'hidden', position: 'relative' }}>
           {preview && (
-            <img src={preview} alt="Preview" style={{ width: '100%', maxHeight: 280, objectFit: 'contain', background: 'var(--bg-hover)', display: 'block', borderRadius: 'var(--radius-lg)' }} />
+            <div style={{ position: 'relative', width: '100%', height: 280, background: 'var(--bg-hover)', borderRadius: 'var(--radius-lg)' }}>
+              <Image src={preview} alt="Preview" fill unoptimized style={{ objectFit: 'contain', borderRadius: 'var(--radius-lg)' }} />
+            </div>
           )}
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', background: 'linear-gradient(transparent 50%, rgba(0,0,0,0.7))', borderRadius: 'var(--radius-lg)' }}>
             <div style={{ padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

@@ -8,7 +8,8 @@ import os
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
 from fastapi.responses import JSONResponse
 from typing import Optional
-from backend.routers.auth import verify_token
+from backend.routers.auth import User, verify_token
+from backend.services.contracts import normalize_decode_result
 
 router = APIRouter()
 
@@ -20,8 +21,7 @@ async def decode_async(
     ends_ppi: int = Form(80),
     color_count: int = Form(6),
     style_override: Optional[str] = Form(None),
-    # Auth disabled for dev — re-enable in production:
-    # token: str = Depends(verify_token),
+    current_user: User = Depends(verify_token),
 ):
     """
     SJDAS v2 Screenshot → Loom Pipeline (Async).
@@ -67,13 +67,14 @@ async def decode_async(
 
 
 @router.get("/decode-async/{task_id}")
-async def get_decode_result(task_id: str):
+async def get_decode_result(task_id: str, current_user: User = Depends(verify_token)):
     """Poll decode result by task_id (alternative to WebSocket)."""
     try:
         from celery.result import AsyncResult
         result = AsyncResult(task_id)
         if result.state == "SUCCESS":
-            return {"status": "success", "result": result.result}
+            normalized = normalize_decode_result(result.result if isinstance(result.result, dict) else {})
+            return {"status": "success", "result": normalized.model_dump()}
         elif result.state == "FAILURE":
             return {"status": "error", "message": str(result.info)}
         else:

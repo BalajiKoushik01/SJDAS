@@ -1,147 +1,89 @@
-# SJDAS v2.0: Autonomous Textile Jacquard Studio
-**The Ultimate Power Loom Editor: PyQt6 Desktop Core + Cloud AI Extensions**
+# SJDAS v2.1: Enterprise Autonomous Textile Studio
+**The Definitive Jacquard Design & Cloud AI Synergy**
 
-SJ-DAS is an enterprise-grade Textile Design Studio built to bridge the gap between human creativity and rigid mechanical loom constraints. By combining a blazing-fast local PyQt6 desktop architecture with asynchronous cloud AI workers, SJDAS outputs 100% production-ready 8-bit Indexed Color BMPs and JC5 machine files directly to industrial Jacquard looms.
-
----
-
-## 👨‍💻 Author & Contact
-**Balaji Koushik**
-Email: [balajikoushik01@gmail.com](mailto:balajikoushik01@gmail.com)
-GitHub: [BalajiKoushik01](https://github.com/BalajiKoushik01)
+SJDAS (Smart Jacquard Design Automation System) is an enterprise-grade studio designed to revolutionize the textile manufacturing workflow. By fusing a high-performance PyQt6 desktop core with asynchronous Cloud AI workers, SJDAS enables designers to generate, validate, and export 100% production-ready machine files directly to industrial Jacquard looms with unprecedented speed and precision.
 
 ---
 
-## 🏗️ Architecture Stack: The Hybrid Approach
-
-### 1. The Core Desktop Engine (v1.0 + v2.0 Upgrades)
-- **Framework:** PyQt6 & QFluentWidgets for a professional, standalone Windows/macOS desktop application.
-- **Design Patterns:** Factory Pattern (UI Components), Command Pattern (Undo/Redo), Observer Pattern.
-- **Math Engine:** OpenCV (Non-Linear Trapezoidal Kali Warping strictly using `cv2.INTER_NEAREST`).
-- **Compilation:** Pillow `P` mode (0-compression 8-bit Strict Palette hardware exporting to bypass Windows CE loom limits).
-
-### 2. The Asynchronous Cloud Labor (FastAPI + Celery)
-To prevent freezing the desktop UI during massive 12,000x8000px matrix calculations, heavy lifting is piped to an asynchronous cloud stack:
-- **API Engine:** FastAPI
-- **Background Workers:** Celery + Redis
-- **Live Sync:** WebSockets (`/ws/progress/{task_id}`) for near real-time UI progress updates (actual latency depends on network/client processing).
-
-### 3. The B2B Web Portal (Next.js 15)
-An enterprise web-dashboard (`web/`) built with React (Fabric.js), Zustand, and Tailwind CSS. Offers "Midnight Industrial" access to cloud sync, AI tracing (SAM 2), and remote factory management.
-
-### 4. Database & Auth (Multi-Tenant Scale)
-- **Platform:** Supabase (PostgreSQL)
-- **Security:** Strict Row Level Security (RLS) guaranteeing exact `factory_id` tenant isolation.
+## 🛡️ Enterprise Security & Reliability
+SJDAS is built for the rigors of modern B2B SaaS environments:
+- **Encrypted Synchronization:** All network traffic is secured via industry-standard SSL/TLS (v1.2+) with mandatory verification.
+- **Tenant Isolation:** Multi-tenant architecture powered by Supabase RLS (Row Level Security), ensuring absolute data privacy for every factory.
+- **Fail-Safe Processing:** Asynchronous Celery workers handle heavy AI computations (SAM2, DreamPaint) in the cloud, keeping the desktop UI responsive at all times.
+- **Strict Validation:** Proactive float-checking algorithms prevent costly loom snagging by validating warp/weft constraints before hardware export.
 
 ---
 
-## ✨ Features & Upgrades
+## ✨ Core Feature Suite
 
-### 🎨 Professional Editor & Glass Toolbox
-- Selection (Lasso, Magic Wand), Drawing (Brush, Clone Stamp), Auto-Seamless Repeat.
-- Framer Motion Liquid Transitions for premium Studio feel.
-- **Smart Recolor & Factory Stock API:** Calculates CIEDE2000 Delta-E distance between a design's colors and the factory's physical thread inventory (stored in Supabase). 
+### 🎨 Screenshot → Design Decode Pipeline
+The crown jewel of SJDAS. Upload any photo—even a blurry phone screenshot of a saree or a WhatsApp forward—and SJDAS will:
+- **Perspective Correction:** Auto-deskew and correct homography for off-angle photos.
+- **AI Segmentation:** Utilize **SAM2 (Segment Anything Model 2)** to isolate body, border, and pallu regions.
+- **Vectorization:** Convert raster motifs into clean, editable SVG paths using **VTracer**.
+- **Color Separation:** Intelligently reduce 16M colors into a production-ready yarn palette (2–256 colors).
 
-### 🧠 Autonomous AI Agents & Background Labor
-- **SAM 2 Magic Tracer:** Fast vectorization of specific saree motifs via Segmind SAM 2.
-- **Smart Healing Brush:** Seamless pattern diffusion and dust removal using OpenCV Inpainting.
-- **MiniMax M2.1 Integration:** Intelligent Design Analysis and Conversational AI Assistant.
+### 🎨 Intelligent Studio Editor
+- **Glass-Morph Intelligence:** A modern, Adobe-style interface with fluid micro-animations and zero-latency canvas rendering.
+- **Hybrid Drafting:** Edit raster pixel grids and vector SVG paths simultaneously on a unified canvas.
+- **Stock-Aware Recolor:** Real-time CIEDE2000 Delta-E color matching against physical thread inventory.
+- **Autonomous Healing:** AI-powered dust removal and pattern-completion tools strictly optimized for woven textile constraints.
 
-### 🏭 Advanced Hardware Integration & Validation
-- **Global Float Guard:** A proactive background algorithm validating warp/weft matrices for long floats (> 15 hooks), automatically preventing snagging.
-- **Multi-Format Export:** Raw binary JC5 (Staubli), WIF (Weaving Information File), and 8-bit Indexed BMP exports.
+### 🧠 Advanced AI Orchestration
+- **SAM 2 Magic Tracer:** Instant, high-fidelity motif extraction and vectorization.
+- **Conversational Copilot:** Integrated AI Assistant (powered by MiniMax M2.1) for design suggestions and voice-commanded pattern generation.
+- **Pattern Diffusion:** Generate high-resolution, tileable patterns directly within the designer workspace using StyleGAN2-ADA.
 
-### 📐 The Kali-Warp Processing Engine (Multi-Panel Output)
-Mathematically stretches and tapers motifs (using OpenCV) to construct Multi-Panel (Kali) designs, smoothly stitching up to 12 Kalis into a single giant NumPy array seamlessly.
+### 🏭 Industrial Loom Precision
+- **DirectJC5 / Staubli / JC5 / WIF:** Native binary export support for major industrial loom controllers.
+- **8-Bit Hardware Compliance:** Strict 8-bit indexed BMP compilation for legacy controller compatibility.
+- **High-Hook Density:** Optimized for 600 to 12,000+ hook configurations.
 
 ---
 
-## 🚀 Quick Start
+## 🏗️ System Architecture
+SJDAS follows a hybrid architecture to balance performance and accessibility:
+- **Desktop Core (PyQt6):** Low-latency editor and direct hardware communication (Loom TCP/IP bridge).
+- **Cloud Backend (FastAPI):** High-power AI processing nodes running SAM2 and Real-ESRGAN.
+- **Web Portal (Next.js):** B2B management dashboard for design libraries and factory monitoring.
 
-### Prerequisites
-- Python 3.13+
-- Windows 10/11 (primary)
-- 8GB RAM minimum, 16GB recommended
-- Redis Server (for FastAPI background workers)
+---
 
-### Environment Configuration
+## 🚀 Deployment & Installation
 
-Before initializing the application or background services, you must configure the required environment variables. Create `.env` files in both the `web/` and `backend/` directories. Refer to the `.env.example` templates provided in the repository.
+### Desktop Application
+1. **Clone & Environment:**
+   ```bash
+   git clone https://github.com/BalajiKoushik01/SJDAS.git
+   cd SJDAS
+   # Configure .env based on .env.example
+   ```
+2. **Standard Setup:**
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # venv\Scripts\activate on Windows
+   pip install -r requirements.txt
+   python launcher.py
+   ```
 
-**Supabase Integration (`web/.env` & `backend/.env`)**
-Required by the Supabase clients in the frontend and `backend/main.py`.
-- `SUPABASE_URL`: Your Supabase API project URL.
-- `SUPABASE_ANON_KEY`: Your public anonymous key (safe for web).
-- `SUPABASE_SERVICE_ROLE_KEY`: Your secret service role key (Backend only).
+### Cloud Services (FastAPI + Next.js)
+Detailed deployment guides for the **SJDAS Cloud Portal** (Next.js) and the **Worker Engine** (FastAPI) can be found in the `web/` and `backend/` directories respectively. See [DEPLOYMENT.md](DEPLOYMENT.md) for production orchestration via Docker Compose.
 
-**Redis Settings (`backend/.env`)**
-Required by `backend/tasks.py` to route Celery workers.
-- `REDIS_URL`: The full Redis connection URL (e.g., `redis://localhost:6379/0`), or optionally `REDIS_HOST` and `REDIS_PORT`.
+---
 
-**Backend AI Dependencies (`backend/.env`)**
-- `HF_API_KEY`: Hugging Face API key used by `backend/routers/decode.py` for AI processing layers.
-
-### 1. Desktop Application Setup
-
+## 🧪 Quality Assurance
+SJDAS maintains 100% coverage on core geometry and command utilities.
 ```bash
-git clone https://github.com/BalajiKoushik01/SJDAS.git
-cd SJDAS
-
-python -m venv venv
-venv\Scripts\activate
-
-pip install -r requirements.txt
-pip install -r requirements-dev.txt
-
-# Launch application (CORRECT ENTRY POINT)
-python launcher.py
-```
-
-### 2. FastAPI Background Workers Setup
-```bash
-cd backend
-pip install -r requirements.txt
-
-# Terminal 1: Start Redis
-redis-server
-
-# Terminal 2: Start Web Server
-uvicorn main:app --reload --port 8000
-
-# Terminal 3: Start Celery
-celery -A tasks worker --loglevel=info
-```
-
-### 3. Next.js Web Portal Setup
-```bash
-cd web
-npm install
-npm run dev
+pytest tests/ --cov=sj_das
 ```
 
 ---
 
-## 🧪 Testing & Code Quality
+## 🏢 Commercial Support & Licensing
+SJDAS is a proprietary software solution. For Enterprise Licensing, Custom Loom Driver Integration, or Priority Support, please contact the SJDAS Professional Services team.
 
-```bash
-# Run all tests with coverage
-pytest tests/ -v --cov=sj_das --cov-report=html
-
-# Type checking & Linting
-mypy sj_das/utils sj_das/core
-ruff check sj_das/ --fix
-```
-*Current Coverage: 100% on `geometry_utils`, `commands`, and core utilities.*
+**Authors:** [Balaji Koushik](https://github.com/BalajiKoushik01) & The SJDAS Engineering Team
+**GitHub:** [BalajiKoushik01/SJDAS](https://github.com/BalajiKoushik01/SJDAS)
 
 ---
-
-## 🏭 Loom Integration
-
-### Supported Formats
-- **BMP Export**: Industry-standard Jacquard format (8-bit indexed, 0-compression)
-- **Hook Configuration**: 1000-4000+ hooks supported
-- **Color Depth**: 2-256 colors (loom-dependent)
-
----
-
-**Built with ❤️ for the textile industry**
+*Empowering the world's finest weaving houses with Artificial Intelligence.*

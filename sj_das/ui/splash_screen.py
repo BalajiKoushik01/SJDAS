@@ -23,7 +23,7 @@ class ModernSplashScreen(QSplashScreen):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         
         # Main Container (Glass)
-        self.container = QFrame(self)
+        self.container = QWidget(self)
         self.container.setFixedSize(600, 350)
         self.container.setStyleSheet("""
             QFrame {

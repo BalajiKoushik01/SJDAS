@@ -4,7 +4,7 @@ from typing import List
 from backend.routers.auth import verify_token
 
 router = APIRouter(
-    prefix="/api/v1/factory",
+    prefix="/factory",
     tags=["Factory Integration"],
     responses={404: {"description": "Not found"}},
 )

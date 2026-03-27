@@ -1,7 +1,18 @@
 import os
+import logging
 
-import numpy as np
-import torch
+try:
+    import numpy as np
+    _LIBS_AVAILABLE = True
+except Exception as e:
+    logging.warning(f"FluxGenerator: Libraries unavailable: {e}")
+    np = None
+    _LIBS_AVAILABLE = False
+
+try:
+    import torch
+except (ImportError, OSError):
+    torch = None
 
 from sj_das.utils.logger import logger
 
@@ -14,7 +25,7 @@ class FluxGenerator:
 
     def __init__(self):
         self.pipe = None
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.device = "cuda" if torch and torch.cuda.is_available() else "cpu"
         self.model_id = "black-forest-labs/FLUX.1-schnell"
 
     def load_model(self):
@@ -45,7 +56,7 @@ class FluxGenerator:
             logger.error(f"Flux Load Error: {e}")
             return False
 
-    def generate(self, params, width: int = 512, height: int = 512, num_steps: int = 4) -> np.ndarray:
+    def generate(self, params, width: int = 512, height: int = 512, num_steps: int = 4) -> 'np.ndarray':
         """
         Generates image from text prompt or DesignParameters.
         """

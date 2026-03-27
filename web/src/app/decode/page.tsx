@@ -6,6 +6,7 @@ import PipelineProgress from '@/components/decode/PipelineProgress';
 import DecodeControls from '@/components/decode/DecodeControls';
 import DecodeResultPanel from '@/components/decode/DecodeResultPanel';
 import { Zap, Brain } from 'lucide-react';
+import { apiV1 } from '@/lib/runtime';
 
 export default function DecodePage() {
   const { uploadedFile, isDecoding, decodeResult, hooks, kalis, colorCount, styleOverride,
@@ -23,7 +24,7 @@ export default function DecodePage() {
       form.append('color_count', String(colorCount));
       if (styleOverride) form.append('style_override', styleOverride);
 
-      const res = await fetch('http://localhost:8000/api/v1/decode-async', {
+      const res = await fetch(apiV1('/decode-async'), {
         method: 'POST',
         body: form,
       });

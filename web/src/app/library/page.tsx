@@ -1,7 +1,71 @@
+'use client';
+
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { Search, Filter, PlusCircle, ImageIcon } from 'lucide-react';
+import { apiV1 } from '@/lib/runtime';
 
 export default function LibraryPage() {
+  const [comments, setComments] = useState<Array<{ id: string; author: string; message: string }>>([]);
+  const [snapshots, setSnapshots] = useState<Array<{ id: string; tag: string; created_by: string }>>([]);
+  const designId = 'studio-active';
+
+  useEffect(() => {
+    const token = localStorage.getItem('sjdas_token') || '';
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    Promise.all([
+      fetch(apiV1(`/premium/comments/${designId}`), { headers }).then((res) =>
+        res.ok ? res.json() : { comments: [] },
+      ),
+      fetch(apiV1(`/premium/snapshots/${designId}`), { headers }).then((res) =>
+        res.ok ? res.json() : { snapshots: [] },
+      ),
+    ]).then(([commentsRes, snapshotsRes]) => {
+      setComments(Array.isArray(commentsRes.comments) ? commentsRes.comments : []);
+      setSnapshots(Array.isArray(snapshotsRes.snapshots) ? snapshotsRes.snapshots : []);
+    });
+  }, []);
+
+  const createApprovalRequest = async () => {
+    const token = localStorage.getItem('sjdas_token') || '';
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+    await fetch(apiV1('/premium/approvals/request'), {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        design_id: designId,
+        requested_by: 'web-user',
+        notes: 'Ready for loom export sign-off',
+      }),
+    });
+    alert('Approval request submitted.');
+  };
+
+  const createSnapshot = async () => {
+    const token = localStorage.getItem('sjdas_token') || '';
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+    const response = await fetch(apiV1('/premium/snapshots'), {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        design_id: designId,
+        tag: `v${snapshots.length + 1}`,
+        created_by: 'web-user',
+        metadata: { source: 'library-ui' },
+      }),
+    });
+    if (response.ok) {
+      const snapshot = await response.json();
+      setSnapshots((current) => [snapshot, ...current]);
+    }
+  };
+
   return (
     <div style={{ padding: '32px', maxWidth: 1200 }}>
       {/* Header */}
@@ -41,19 +105,48 @@ export default function LibraryPage() {
       </div>
 
       {/* Empty State */}
-      <div className="card" style={{ textAlign: 'center', padding: 64 }}>
+      <div className="card" style={{ textAlign: 'center', padding: 40 }}>
         <ImageIcon size={40} style={{ color: 'var(--text-muted)', margin: '0 auto 16px' }} />
-        <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>No Designs Yet</div>
+        <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>Design Governance Workspace</div>
         <div style={{ fontSize: 13, color: 'var(--text-secondary)', maxWidth: 400, margin: '0 auto 24px' }}>
-          Decode your first saree screenshot or create a design from scratch in the Studio.
+          Request export approvals, track review comments, and create version snapshots.
         </div>
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+          <button className="btn-primary" onClick={createApprovalRequest}>Request Approval</button>
+          <button className="btn-secondary" onClick={createSnapshot}>Create Snapshot</button>
           <Link href="/decode" style={{ textDecoration: 'none' }}>
             <button className="btn-primary">Decode Screenshot →</button>
           </Link>
           <Link href="/studio/new" style={{ textDecoration: 'none' }}>
             <button className="btn-secondary">Open Studio</button>
           </Link>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 16 }}>
+        <div className="card">
+          <h3 style={{ marginTop: 0 }}>Snapshots</h3>
+          {snapshots.length === 0 ? (
+            <p style={{ color: 'var(--text-muted)' }}>No snapshots yet.</p>
+          ) : (
+            snapshots.map((snapshot) => (
+              <div key={snapshot.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
+                <strong>{snapshot.tag}</strong> by {snapshot.created_by}
+              </div>
+            ))
+          )}
+        </div>
+        <div className="card">
+          <h3 style={{ marginTop: 0 }}>Comments</h3>
+          {comments.length === 0 ? (
+            <p style={{ color: 'var(--text-muted)' }}>No comments yet.</p>
+          ) : (
+            comments.map((comment) => (
+              <div key={comment.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
+                <strong>{comment.author}:</strong> {comment.message}
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

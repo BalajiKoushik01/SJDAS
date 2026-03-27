@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStudioStore } from '@/store/useStudioStore';
 import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { getWsBaseUrl } from '@/lib/runtime';
 
 export default function AgenticProgressModal() {
   const taskId = useStudioStore((state) => state.taskId);
@@ -18,7 +19,7 @@ export default function AgenticProgressModal() {
     if (!taskId) return;
 
     // Connect strictly to the FastAPI Celery stream
-    const ws = new WebSocket(`ws://localhost:8000/ws/progress/${taskId}`);
+    const ws = new WebSocket(`${getWsBaseUrl()}/ws/progress/${taskId}`);
 
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
@@ -38,10 +39,6 @@ export default function AgenticProgressModal() {
 
     return () => {
       ws.close();
-      // On unmount, if we are done, clear the task
-      if (status === 'success' || status === 'error') {
-          // Keep it open for user to click download, but clean up ws
-      }
     };
   }, [taskId]); // Re-run if taskId changes
 

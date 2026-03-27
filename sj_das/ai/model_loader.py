@@ -4,21 +4,30 @@ Provides inference for segmentation, pattern classification, and weave detection
 """
 
 from pathlib import Path
+import logging
 
-import cv2
-import numpy as np
-import torch
-import torch.nn.functional as F
+try:
+    import cv2
+    import numpy as np
+    import torch
+    import torch.nn.functional as F
+    _AI_LIBS_AVAILABLE = True
+except Exception as e:
+    logging.warning(f"ModelLoader: Core AI libraries unavailable: {e}")
+    cv2 = None
+    np = None
+    torch = None
+    F = None
+    _AI_LIBS_AVAILABLE = False
 
-# Import model architecture (optional - app works without it)
+# Import model architecture
 try:
     import sys
     sys.path.append(str(Path(__file__).parent))
     from textile_model import TextileSegmentationModel
     TEXTILE_MODEL_AVAILABLE = True
 except Exception as e:
-    print(
-        f"Note: Textile segmentation model not available ({e}). App will run with reduced AI features.")
+    logging.warning(f"Textile segmentation model architecture not available: {e}")
     TEXTILE_MODEL_AVAILABLE = False
     TextileSegmentationModel = None
 
@@ -82,8 +91,9 @@ class TextileAIModel:
             print(f"Error loading model: {e}")
             return False
 
-    def preprocess_image(self, image: np.ndarray) -> torch.Tensor:
+    def preprocess_image(self, image: 'np.ndarray') -> 'torch.Tensor':
         """Preprocess image for model input."""
+        if not cv2 or not np or not torch: return None
         # Resize to model input size (512x512)
         img = cv2.resize(image, (512, 512), interpolation=cv2.INTER_LINEAR)
 
@@ -107,7 +117,7 @@ class TextileAIModel:
 
         return tensor.float()
 
-    def predict(self, image: np.ndarray) -> dict:
+    def predict(self, image: 'np.ndarray') -> dict:
         """
         Run complete prediction on image using optimized inference.
         """
@@ -188,28 +198,28 @@ class TextileAIModel:
             return None
 
     def predict_segmentation(
-            self, image: np.ndarray) -> tuple[np.ndarray, float]:
+            self, image: 'np.ndarray') -> tuple['np.ndarray', float]:
         """Quick segmentation prediction."""
         result = self.predict(image)
         if result:
             return result['segmentation']['mask'], result['segmentation']['confidence']
         return None, 0.0
 
-    def predict_pattern_type(self, image: np.ndarray) -> tuple[str, float]:
+    def predict_pattern_type(self, image: 'np.ndarray') -> tuple[str, float]:
         """Quick pattern classification."""
         result = self.predict(image)
         if result:
             return result['pattern']['type'], result['pattern']['confidence']
         return "Unknown", 0.0
 
-    def predict_weave_type(self, image: np.ndarray) -> tuple[str, float]:
+    def predict_weave_type(self, image: 'np.ndarray') -> tuple[str, float]:
         """Quick weave detection."""
         result = self.predict(image)
         if result:
             return result['weave']['type'], result['weave']['confidence']
         return "Unknown", 0.0
 
-    def get_confidence_scores(self, image: np.ndarray) -> dict[str, float]:
+    def get_confidence_scores(self, image: 'np.ndarray') -> dict[str, float]:
         """Get all confidence scores."""
         result = self.predict(image)
         if result:

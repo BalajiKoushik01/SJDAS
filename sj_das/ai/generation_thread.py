@@ -1,9 +1,17 @@
 from pathlib import Path
+import logging
 
-import cv2
-import numpy as np
+try:
+    import cv2
+    import numpy as np
+    _LIBS_AVAILABLE = True
+except Exception as e:
+    logging.warning(f"GenerationThread: Libraries unavailable: {e}")
+    cv2 = None
+    np = None
+    _LIBS_AVAILABLE = False
+
 from PyQt6.QtCore import QThread, pyqtSignal
-
 from sj_das.ai.model_manager import ModelManager
 
 
@@ -27,6 +35,9 @@ class GenerationThread(QThread):
         try:
             self.progress.emit(10)
 
+            if not _LIBS_AVAILABLE:
+                raise RuntimeError("Critical libraries (cv2/numpy) not available")
+
             # Ensure model is loaded (might take time on first run)
             if not self.model_manager.load_stylegan():
                 raise RuntimeError("Failed to load StyleGAN model")
@@ -41,9 +52,9 @@ class GenerationThread(QThread):
 
             self.progress.emit(80)
 
-            # Save to temp file
-            temp_dir = Path("temp_results")
-            temp_dir.mkdir(exist_ok=True)
+            # Save to temp file (use user home for persistence and write permissions)
+            temp_dir = Path.home() / ".sj_das" / "temp_results"
+            temp_dir.mkdir(parents=True, exist_ok=True)
             output_path = temp_dir / "generated_pattern.png"
 
             # Convert RGB to BGR for OpenCV

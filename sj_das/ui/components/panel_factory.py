@@ -124,7 +124,7 @@ class PanelFactory:
         """
         from PyQt6.QtCore import Qt
         from PyQt6.QtWidgets import QScrollArea, QSizePolicy
-        from qfluentwidgets import (CollapsibleWidgetItem, FluentIcon as FIF,
+        from qfluentwidgets import (FluentIcon as FIF,
                                      PrimaryPushButton, PushButton,
                                      SubtitleLabel, TitleLabel)
 
@@ -242,7 +242,7 @@ class PanelFactory:
         layout.addWidget(btn)
 
         btn = PushButton("🌊  Depth Map (3D Relief)")
-        btn.setIcon(FIF.MAP)
+        btn.setIcon(FIF.GLOBE)
         btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         btn.clicked.connect(v.apply_depth_map)
         layout.addWidget(btn)
@@ -257,19 +257,19 @@ class PanelFactory:
         layout.addWidget(btn)
 
         btn = PushButton("🧵  Apply Weave Simulation")
-        btn.setIcon(FIF.GRID)
+        btn.setIcon(FIF.TILES)
         btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         btn.clicked.connect(v.apply_weave)
         layout.addWidget(btn)
 
         btn = PushButton("🔬  Fabric Simulation")
-        btn.setIcon(FIF.EXPERIENCE)
+        btn.setIcon(FIF.CERTIFICATE)
         btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         btn.clicked.connect(v.show_fabric_simulation)
         layout.addWidget(btn)
 
         btn = PushButton("🐛  Defect Scan")
-        btn.setIcon(FIF.WARNING)
+        btn.setIcon(FIF.INFO)
         btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         btn.clicked.connect(v.show_defect_scan)
         layout.addWidget(btn)
@@ -338,6 +338,12 @@ class PanelFactory:
         btn.setIcon(FIF.ROBOT)
         btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         btn.clicked.connect(v.toggle_copilot)
+        layout.addWidget(btn)
+
+        btn = PushButton("☁️  Backup to Cloud")
+        btn.setIcon(FIF.CLOUD)
+        btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        btn.clicked.connect(v.backup_to_cloud)
         layout.addWidget(btn)
 
         layout.addStretch()

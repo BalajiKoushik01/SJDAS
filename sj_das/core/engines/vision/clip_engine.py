@@ -1,11 +1,26 @@
 import os
+import logging
 
-import clip
-import numpy as np
-import torch
-from PIL import Image
+logger_clip = logging.getLogger("SJ_DAS.CLIPEngine")
 
-from sj_das.utils.logger import logger
+try:
+    import clip
+    import torch
+    import numpy as np
+    from PIL import Image
+    _CLIP_AVAILABLE = True
+except Exception as e:
+    logger_clip.warning(f"CLIP/Torch not available (GPU/DLL issue): {e}")
+    clip = None
+    torch = None
+    np = None
+    Image = None
+    _CLIP_AVAILABLE = False
+
+try:
+    from sj_das.utils.logger import logger
+except Exception:
+    import logging as logger
 
 
 class CLIPEngine:

@@ -1,6 +1,15 @@
+import logging
 
-import numpy as np
-import cv2
+try:
+    import numpy as np
+    import cv2
+    _LIBS_AVAILABLE = True
+except Exception as e:
+    logging.warning(f"VirtualTryOn: Libraries unavailable: {e}")
+    np = None
+    cv2 = None
+    _LIBS_AVAILABLE = False
+
 from sj_das.ai.flux_generator import FluxGenerator
 from sj_das.utils.logger import logger
 
@@ -12,7 +21,7 @@ class VirtualTryOn:
     def __init__(self):
         self.flux = FluxGenerator()
         
-    def generate_mockup(self, design_image: np.ndarray, model_pose: str = "standing") -> np.ndarray:
+    def generate_mockup(self, design_image: 'np.ndarray', model_pose: str = "standing") -> 'np.ndarray':
         """
         Generate a photorealistic mockup of the design on a model.
         """

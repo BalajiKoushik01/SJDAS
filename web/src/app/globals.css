@@ -1,0 +1,37 @@
+@import "../../app/globals.css";
+
+/* World-class minimal shell refinements */
+:root {
+  --shell-max-width: 100%;
+}
+
+.app-shell {
+  min-height: 100vh;
+  background: radial-gradient(circle at 100% 0%, #121523 0%, #0a0b0f 52%);
+}
+
+.app-content {
+  margin: 0 auto;
+  width: 100%;
+  max-width: var(--shell-max-width);
+}
+
+.section-title {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+
+.section-subtitle {
+  margin-top: 6px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.glass-panel {
+  background: linear-gradient(180deg, rgba(20, 24, 37, 0.9), rgba(12, 15, 24, 0.82));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(8px);
+}

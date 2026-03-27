@@ -135,9 +135,9 @@ export default function AppSidebar() {
             </div>
             <div>
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.2 }}>
-                Balaji Koushik
+                SJDAS Workspace
               </div>
-              <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>Factory Admin</div>
+              <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>Enterprise Admin</div>
             </div>
           </div>
         ) : (

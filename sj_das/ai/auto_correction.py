@@ -5,9 +5,17 @@ Detects proportion errors, color problems, symmetry issues, and more
 
 from dataclasses import dataclass
 from typing import Any, Optional
+import logging
 
-import cv2
-import numpy as np
+try:
+    import cv2
+    import numpy as np
+    _LIBS_AVAILABLE = True
+except Exception as e:
+    logging.warning(f"AutoCorrection: Libraries unavailable: {e}")
+    cv2 = None
+    np = None
+    _LIBS_AVAILABLE = False
 
 
 @dataclass
@@ -35,8 +43,8 @@ class EditWatcher:
         self.MIN_PALLU_LENGTH_MM = 1000  # 1 meter
         self.MIN_CONTRAST_PERCENT = 30  # 30% brightness difference
 
-    def watch_edit(self, action: str, image_before: np.ndarray,
-                   image_after: np.ndarray, metadata: dict = None) -> tuple[np.ndarray, list[CorrectionIssue]]:
+    def watch_edit(self, action: str, image_before: 'np.ndarray',
+                   image_after: 'np.ndarray', metadata: dict = None) -> tuple['np.ndarray', list[CorrectionIssue]]:
         """
         Watch an edit action and apply auto-corrections if needed.
 
@@ -72,7 +80,7 @@ class EditWatcher:
         self.issues_detected.extend(issues)
         return corrected, issues
 
-    def _check_proportions(self, image: np.ndarray,
+    def _check_proportions(self, image: 'np.ndarray',
                            metadata: dict) -> list[CorrectionIssue]:
         """Check if proportions follow traditional guidelines."""
         issues = []
@@ -108,7 +116,7 @@ class EditWatcher:
 
         return issues
 
-    def _check_colors(self, image: np.ndarray,
+    def _check_colors(self, image: 'np.ndarray',
                       metadata: dict) -> list[CorrectionIssue]:
         """Check color contrast and cultural appropriateness."""
         issues = []
@@ -150,7 +158,7 @@ class EditWatcher:
 
         return issues
 
-    def _check_symmetry(self, image: np.ndarray,
+    def _check_symmetry(self, image: 'np.ndarray',
                         metadata: dict) -> list[CorrectionIssue]:
         """Check if design is symmetric (important for borders)."""
         issues = []
@@ -194,8 +202,8 @@ class EditWatcher:
 
         return issues
 
-    def _apply_fix(self, image: np.ndarray, issue: CorrectionIssue,
-                   metadata: dict) -> np.ndarray:
+    def _apply_fix(self, image: 'np.ndarray', issue: CorrectionIssue,
+                   metadata: dict) -> 'np.ndarray':
         """Apply automatic fix for an issue."""
 
         if issue.issue_type == 'border_too_narrow':
@@ -218,8 +226,8 @@ class EditWatcher:
 
         return image
 
-    def _fix_border_width(self, image: np.ndarray, target_width_mm: int,
-                          metadata: dict) -> np.ndarray:
+    def _fix_border_width(self, image: 'np.ndarray', target_width_mm: int,
+                          metadata: dict) -> 'np.ndarray':
         """Scale border to correct width."""
         current_width = metadata.get('width_mm', image.shape[1])
         scale_factor = target_width_mm / current_width
@@ -230,8 +238,8 @@ class EditWatcher:
 
         return resized
 
-    def _fix_pallu_length(self, image: np.ndarray, target_length_mm: int,
-                          metadata: dict) -> np.ndarray:
+    def _fix_pallu_length(self, image: 'np.ndarray', target_length_mm: int,
+                          metadata: dict) -> 'np.ndarray':
         """Extend pallu to correct length."""
         current_length = metadata.get('length_mm', image.shape[0])
         scale_factor = target_length_mm / current_length
@@ -242,7 +250,7 @@ class EditWatcher:
 
         return resized
 
-    def _fix_contrast(self, image: np.ndarray) -> np.ndarray:
+    def _fix_contrast(self, image: 'np.ndarray') -> 'np.ndarray':
         """Enhance contrast using CLAHE."""
         # Convert to LAB
         lab = cv2.cvtColor(image, cv2.COLOR_RGB2LAB)
@@ -258,7 +266,7 @@ class EditWatcher:
 
         return enhanced
 
-    def _fix_brightness(self, image: np.ndarray, increase: bool) -> np.ndarray:
+    def _fix_brightness(self, image: 'np.ndarray', increase: bool) -> 'np.ndarray':
         """Adjust overall brightness."""
         hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
         h, s, v = cv2.split(hsv)
@@ -273,7 +281,7 @@ class EditWatcher:
 
         return adjusted
 
-    def _fix_symmetry(self, image: np.ndarray) -> np.ndarray:
+    def _fix_symmetry(self, image: 'np.ndarray') -> 'np.ndarray':
         """Make border symmetric by mirroring left side."""
         h, w = image.shape[:2]
 

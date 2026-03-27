@@ -109,10 +109,9 @@ class RemoteAIEngine:
         try:
             print(f"Requesting Pollinations AI (Optimized): {final_prompt}")
 
-            # 2. Robust Network Request (SSL Fix)
-            # Verify=False to bypass local cert issues (Common on
-            # Windows/Proxies)
-            response = requests.get(url, timeout=45, verify=False)
+            # 2. Robust Network Request
+            # Certificate verification is now enabled for security.
+            response = requests.get(url, timeout=45, verify=True)
 
             if response.status_code == 200:
                 image_bytes = response.content

@@ -9,26 +9,16 @@ import cv2
 import os
 from backend.routers.auth import verify_token
 from backend.services.float_checker import check_floats
+from backend.services.jc5_service import JC5Encoder
 
 router = APIRouter(
-    prefix="/api/v1/export-advanced",
+    prefix="/export-advanced",
     tags=["Export Advanced"],
     responses={404: {"description": "Not found"}},
 )
 
-def _generate_jc5(matrix: np.ndarray, output_path: str):
-    """
-    Simulates writing a JC5 (Staubli Jacquard format).
-    Real implementation requires specific bit-packing and EP curves.
-    """
-    h, w = matrix.shape
-    with open(output_path, 'wb') as f:
-        # Fake JC5 Header
-        f.write(b"STAUB_JC5\x00\x00\x00\x00")
-        f.write(h.to_bytes(4, 'little'))
-        f.write(w.to_bytes(4, 'little'))
-        # Fake pattern data
-        f.write(matrix.tobytes())
+# Initialize production encoders
+jc5_encoder = JC5Encoder(hooks=600)  # Default, can be overridden by loom config
 
 @router.post("/jc5")
 async def export_jc5(
@@ -49,7 +39,7 @@ async def export_jc5(
         raise HTTPException(status_code=422, detail="Float violations prevented JC5 export.")
 
     out_file = "production.jc5"
-    _generate_jc5(image_matrix, out_file)
+    jc5_encoder.encode(binary_matrix, out_file)
     
     return FileResponse(out_file, media_type="application/octet-stream", filename=out_file)
 

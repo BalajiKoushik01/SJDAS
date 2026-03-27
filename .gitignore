@@ -34,6 +34,8 @@ checkpoints/
 
 # Logs and temporary files
 *.log
+sj_das.log
+app_output.log
 logs/
 *.tmp
 *.temp
@@ -41,6 +43,8 @@ temp_results/
 integration_test_output/
 runs/
 htmlcov/
+startup_debug.txt
+test_qt.py
 
 # Test and coverage
 .coverage

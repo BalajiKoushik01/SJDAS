@@ -1,10 +1,23 @@
 import os
+import logging
 
-import cv2
-import numpy as np
-import torch
+try:
+    import cv2
+    import numpy as np
+    import torch
+    _TORCH_AVAILABLE = True
+except Exception as e:
+    logging.warning(f"SAMEngine: torch/cv2 unavailable: {e}")
+    cv2 = None
+    np = None
+    torch = None
+    _TORCH_AVAILABLE = False
 
-from sj_das.utils.logger import logger
+try:
+    from sj_das.utils.logger import logger
+except Exception:
+    import logging as _log
+    logger = logging.getLogger("SJ_DAS.SAMEngine")
 
 
 class SAMEngine:

@@ -3,6 +3,8 @@
 import { useEffect, useRef } from 'react';
 import { useStudioStore } from '@/store/useStudioStore';
 import { CheckCircle, Loader2, Circle } from 'lucide-react';
+import { getWsBaseUrl } from '@/lib/runtime';
+import { normalizeDecodeResult } from '@/lib/contracts';
 
 const PIPELINE_STEPS = [
   { id: 'preprocess',  label: 'Preprocess',         desc: 'Upscaling, deskew, denoise' },
@@ -35,7 +37,7 @@ export default function PipelineProgress() {
   // Wire WebSocket when taskId is set
   useEffect(() => {
     if (!taskId) return;
-    const ws = new WebSocket(`ws://localhost:8000/ws/progress/${taskId}`);
+    const ws = new WebSocket(`${getWsBaseUrl()}/ws/progress/${taskId}`);
     wsRef.current = ws;
 
     ws.onmessage = (ev) => {
@@ -45,7 +47,7 @@ export default function PipelineProgress() {
         setDecodeProgress(progress ?? decodeProgress, message);
       } else if (msg.status === 'success') {
         setDecodeProgress(100, 'Decode Complete!');
-        setDecodeResult(msg.result);
+        setDecodeResult(normalizeDecodeResult(msg.result));
         finishDecoding();
         ws.close();
       } else if (msg.status === 'error') {

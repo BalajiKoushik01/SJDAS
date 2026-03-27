@@ -3,13 +3,24 @@ Improved Multi-Task Textile Segmentation Model
 Segments saree + classifies pattern type + detects weave type
 """
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torchvision import models
+import logging
+
+try:
+    import torch
+    import torch.nn as nn
+    import torch.nn.functional as F
+    from torchvision import models
+    _TORCH_AVAILABLE = True
+except Exception as e:
+    logging.warning(f"TextileModel: Torch/Torchvision unavailable: {e}")
+    torch = None
+    nn = object  # Stub for inheritance
+    F = None
+    models = None
+    _TORCH_AVAILABLE = False
 
 
-class TextileSegmentationModel(nn.Module):
+class TextileSegmentationModel(nn.Module if _TORCH_AVAILABLE else object):
     """
     Multi-task model for textile design analysis.
 

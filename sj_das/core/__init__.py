@@ -1,17 +1,17 @@
 # Core utilities (optional imports)
 try:
     from .design_utils import DesignUtils
-except ImportError:
+except Exception:
     DesignUtils = None
 
 try:
     from .palette_manager import PaletteManager
-except ImportError:
+except Exception:
     PaletteManager = None
 
 try:
     from .undo_system import UndoSystem
-except ImportError:
+except Exception:
     UndoSystem = None
 
 # Try new modular structure first, fallback to old
@@ -29,106 +29,106 @@ try:
     from .engines.vision.clip_engine import CLIPEngine
     from .engines.vision.midas_depth import MiDaSDepth
     from .engines.vision.sam_engine import SAMEngine
-except ImportError:
+except Exception:
     # Fallback to old structure
     try:
         from .agent_engine import AgentEngine
-    except ImportError:
+    except Exception:
         AgentEngine = None
 
     try:
         from .crew_engine import Agent, Crew, LocalLLMEngine, Task
-    except ImportError:
+    except Exception:
         Crew = Agent = Task = LocalLLMEngine = None
 
     try:
         from .clip_engine import CLIPEngine
-    except ImportError:
+    except Exception:
         CLIPEngine = None
 
     try:
         from .sam_engine import SAMEngine
-    except ImportError:
+    except Exception:
         SAMEngine = None
 
     try:
         from .midas_depth import MiDaSDepth
-    except ImportError:
+    except Exception:
         MiDaSDepth = None
 
     try:
         from .advanced_vision import AdvancedVisionEngine
-    except ImportError:
+    except Exception:
         AdvancedVisionEngine = None
 
     try:
         from .upscaler import AIUpscaler
-    except ImportError:
+    except Exception:
         AIUpscaler = None
 
     try:
         from .real_esrgan_upscaler import RealESRGANUpscaler
-    except ImportError:
+    except Exception:
         RealESRGANUpscaler = None
 
     try:
         from .style_transfer import StyleTransferEngine
-    except ImportError:
+    except Exception:
         StyleTransferEngine = None
 
     try:
         from .controlnet_engine import ControlNetEngine
-    except ImportError:
+    except Exception:
         ControlNetEngine = None
 
     try:
         from .magic_eraser import MagicEraserEngine
-    except ImportError:
+    except Exception:
         MagicEraserEngine = None
 
     try:
         from .quantizer import ColorQuantizerEngine
-    except ImportError:
+    except Exception:
         ColorQuantizerEngine = None
 
 # AI Orchestrator
 try:
     from .ai_orchestrator import AIOrchestrator
-except ImportError:
+except Exception:
     AIOrchestrator = None
 
 # Manufacturing Engines
 try:
     from .loom_engine import LoomEngine
-except ImportError:
+except Exception:
     LoomEngine = None
 
 try:
     from .fabric_renderer_3d import FabricRenderer3D
-except ImportError:
+except Exception:
     FabricRenderer3D = None
 
 try:
     from .costing import CostingEngine
-except ImportError:
+except Exception:
     CostingEngine = None
 
 # Voice
 try:
     from .voice_engine import VoiceCommandEngine
-except ImportError:
+except Exception:
     VoiceCommandEngine = None
 
 # Recovery
 try:
     from .design_recovery import DesignRecoveryEngine
-except ImportError:
+except Exception:
     DesignRecoveryEngine = None
 
 # Utilities
 try:
     from .defect_scanner import DefectScannerEngine
-except ImportError:
+except Exception:
     DefectScannerEngine = None
 
 # Export all available modules
