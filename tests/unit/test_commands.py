@@ -10,11 +10,11 @@ import pytest
 from PyQt6.QtCore import QRect
 from PyQt6.QtGui import QImage, QUndoStack
 
-from sj_das.ui.commands import MaskEditCommand
+from sj_das.ui.commands import BitmapEditCommand
 
 
-class TestMaskEditCommand:
-    """Test suite for MaskEditCommand."""
+class TestBitmapEditCommand:
+    """Test suite for BitmapEditCommand."""
 
     @pytest.fixture
     def mock_editor(self):
@@ -43,7 +43,7 @@ class TestMaskEditCommand:
         before, after = sample_images
         rect = QRect(0, 0, 50, 50)
 
-        cmd = MaskEditCommand(
+        cmd = BitmapEditCommand(
             mock_editor,
             before,
             after,
@@ -62,7 +62,7 @@ class TestMaskEditCommand:
         before, after = sample_images
         rect = QRect(0, 0, 50, 50)
 
-        cmd = MaskEditCommand(mock_editor, before, after, rect, "Test")
+        cmd = BitmapEditCommand(mock_editor, before, after, rect, "Test")
         cmd.redo()
 
         mock_editor.mask_updated.emit.assert_called_once()
@@ -72,7 +72,7 @@ class TestMaskEditCommand:
         before, after = sample_images
         rect = QRect(0, 0, 50, 50)
 
-        cmd = MaskEditCommand(mock_editor, before, after, rect, "Test")
+        cmd = BitmapEditCommand(mock_editor, before, after, rect, "Test")
         cmd.undo()
 
         mock_editor.mask_updated.emit.assert_called_once()
@@ -82,7 +82,7 @@ class TestMaskEditCommand:
         before, after = sample_images
         rect = QRect(0, 0, 50, 50)
 
-        cmd = MaskEditCommand(mock_editor, before, after, rect, "Test")
+        cmd = BitmapEditCommand(mock_editor, before, after, rect, "Test")
 
         # Redo then undo
         cmd.redo()
