@@ -7,7 +7,8 @@ import cv2
 import numpy as np
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
 from fastapi.responses import JSONResponse
-from backend.routers.auth import verify_token
+from pydantic import BaseModel
+from backend.routers.auth import User, verify_token
 from sj_das.ai.flux_generator import FluxGenerator
 
 router = APIRouter(
@@ -37,7 +38,7 @@ async def generate_design(
     prompt: str = Form(...),
     width: int = Form(512),
     height: int = Form(512),
-    token: str = Depends(verify_token)
+    current_user: User = Depends(verify_token)
 ):
     """
     SOTA Flux.1 [schnell] Generation.
@@ -64,7 +65,7 @@ async def magic_trace(
     file: UploadFile = File(...),
     x: float = Form(...),
     y: float = Form(...),
-    token: str = Depends(verify_token)
+    current_user: User = Depends(verify_token)
 ):
     """
     Simulates SAM 2 (Segment Anything 2) point-prompt mask generation
@@ -88,7 +89,7 @@ async def magic_trace(
 async def smart_heal(
     file: UploadFile = File(...),
     mask: UploadFile = File(...),
-    token: str = Depends(verify_token)
+    current_user: User = Depends(verify_token)
 ):
     """
     Applies Pattern Diffusion (e.g., Stable Diffusion Inpainting or Navier-Stokes)

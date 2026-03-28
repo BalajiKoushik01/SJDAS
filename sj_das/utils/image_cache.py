@@ -57,8 +57,8 @@ class ImageCache:
             Unique cache key string
         """
         try:
-            # Hash image data
-            img_hash = hashlib.md5(image.tobytes()).hexdigest()[:16]
+            # Hash image data (Use SHA256 for better collision resistance)
+            img_hash = hashlib.sha256(image.tobytes()).hexdigest()[:16]
 
             # Sort params for consistent keys
             param_str = '_'.join(f"{k}={v}" for k, v in sorted(params.items()))

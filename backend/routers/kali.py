@@ -4,7 +4,7 @@ import numpy as np
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
 from pydantic import BaseModel
 from typing import List
-from backend.routers.auth import verify_token
+from backend.routers.auth import User, verify_token
 from backend.services.kali_engine import generate_tapered_kali, stitch_master_file
 
 router = APIRouter(
@@ -20,7 +20,7 @@ async def process_kali_master(
     bottom_hooks: int = Form(...),
     total_picks: int = Form(...),
     total_kalis: int = Form(...),
-    token: str = Depends(verify_token)
+    current_user: User = Depends(verify_token)
 ):
     """
     Agentic Workflow for Multi-Panel Continuous Output.

@@ -50,30 +50,30 @@ export default function FabricWorkspace() {
     canvas.on('mouse:down', function (opt) {
       const evt = opt.e as MouseEvent;
       if (evt.altKey === true) { // Alt or Space implementation
-        this.isDragging = true;
-        this.selection = false;
-        this.lastPosX = evt.clientX;
-        this.lastPosY = evt.clientY;
+        (canvas as any).isDragging = true;
+        canvas.selection = false;
+        (canvas as any).lastPosX = evt.clientX;
+        (canvas as any).lastPosY = evt.clientY;
       }
     });
     
     canvas.on('mouse:move', function (opt) {
-      if (this.isDragging) {
+      if ((canvas as any).isDragging) {
         const e = opt.e as MouseEvent;
-        if (!this.viewportTransform) return;
-        const vpt = this.viewportTransform;
-        vpt[4] += e.clientX - this.lastPosX;
-        vpt[5] += e.clientY - this.lastPosY;
-        this.requestRenderAll();
-        this.lastPosX = e.clientX;
-        this.lastPosY = e.clientY;
+        if (!canvas.viewportTransform) return;
+        const vpt = canvas.viewportTransform;
+        vpt[4] += e.clientX - (canvas as any).lastPosX;
+        vpt[5] += e.clientY - (canvas as any).lastPosY;
+        canvas.requestRenderAll();
+        (canvas as any).lastPosX = e.clientX;
+        (canvas as any).lastPosY = e.clientY;
       }
     });
     
     canvas.on('mouse:up', function () {
-      this.setViewportTransform(this.viewportTransform);
-      this.isDragging = false;
-      this.selection = true;
+      canvas.setViewportTransform(canvas.viewportTransform!);
+      (canvas as any).isDragging = false;
+      canvas.selection = true;
     });
 
     // Cleanup

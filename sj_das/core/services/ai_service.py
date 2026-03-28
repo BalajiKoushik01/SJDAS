@@ -179,10 +179,8 @@ class AIService(QObject):
         if not self._sam:
             self._sam = SAMEngine()
 
-        if point_coords:
-            def task(): return self._sam.predict_mask(image, point_coords, point_labels)
-        else:
-            def task(): return self._sam.generate_masks(image)
+        def task():
+            return self._sam.predict_mask(image, point_coords, point_labels)
 
         self.task_started.emit(self.TASK_VISION, "Segmenting Image...")
         worker = AIWorker(task)
@@ -218,18 +216,16 @@ class AIService(QObject):
         """Instant segmentation from point."""
         if not self._sam or not self._sam.is_ready:
             return None
-        return self._sam.predict_click(x, y)
+        return self._sam.predict_mask(None, [[x, y]], [1])
 
     # --- Enhancement Tools ---
     def upscale_image(self, image: np.ndarray, scale: int = 4):
         """Upscale image using Real-ESRGAN."""
-        from sj_das.core.engines.enhancement.real_esrgan_upscaler import \
-            RealESRGANUpscaler
-
-        upscaler = RealESRGANUpscaler(scale=scale)
+        from sj_das.core.engines.vision.realesrgan_engine import RealESRGANEngine
+        engine = RealESRGANEngine()
 
         self.task_started.emit(self.TASK_GEN, f"Upscaling {scale}x...")
-        worker = AIWorker(upscaler.upscale, image)
+        worker = AIWorker(engine.enhance, image)
         worker.finished.connect(self.generation_completed.emit)
         worker.finished.connect(
             lambda: self.task_completed.emit(

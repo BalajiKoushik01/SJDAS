@@ -1,12 +1,13 @@
 import os
 import logging
+from typing import Optional
 
 try:
     import cv2
     import numpy as np
     import torch
     _TORCH_AVAILABLE = True
-except Exception as e:
+except (ImportError, AttributeError) as e:
     logging.warning(f"SAMEngine: torch/cv2 unavailable: {e}")
     cv2 = None
     np = None
@@ -28,117 +29,108 @@ class SAMEngine:
 
     def __init__(self):
         self.predictor = None
-        self.is_ready = False
-        self.model_path = os.path.join(
-            os.getcwd(),
-            'sj_das',
-            'assets',
-            'models',
-            'sam',
-            'sam_vit_h_4b8939.pth')
+        self.generator = None
+        self.model_cfg = os.getenv("SAM2_MODEL_CFG", "sam2.1_hiera_l.yaml")
+        
+        # Search for model in multiple locations
+        possible_paths = [
+            os.getenv("SAM2_CHECKPOINT"),
+            os.path.join(os.getcwd(), 'sj_das', 'assets', 'models', 'sam2', 'sam2.1_hiera_large.pt'),
+            os.path.join(os.getcwd(), 'models', 'sam2.1_hiera_large.pt'),
+            os.path.abspath("sam2.1_hiera_large.pt")
+        ]
+        
+        self.model_path = None
+        for p in possible_paths:
+            if p and os.path.exists(p):
+                self.model_path = p
+                break
+        
+        if not self.model_path:
+            self.model_path = possible_paths[1] # Default to the standard location
+            
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self._last_image_hash: Optional[int] = None
 
     def load_model(self):
-        """Loads the heavy model into memory."""
+        """Loads SAM2 model."""
         if self.is_ready:
             return True
 
         if not os.path.exists(self.model_path):
-            logger.error("SAM Model file not found.")
+            logger.error(f"SAM2 Model file not found at {self.model_path}")
             return False
 
         try:
-            from segment_anything import SamPredictor, sam_model_registry
+            from sam2.build_sam import build_sam2
+            from sam2.sam2_image_predictor import SAM2ImagePredictor
+            from sam2.automatic_mask_generator import SAM2AutomaticMaskGenerator
 
-            logger.info(f"Loading SAM (ViT-B) on {self.device}...")
-            sam = sam_model_registry["vit_h"](checkpoint=self.model_path)
-            sam.to(device=self.device)
-            self.predictor = SamPredictor(sam)
+            logger.info(f"Loading SAM2 (hiera-large) on {self.device}...")
+            sam2_model = build_sam2(self.model_cfg, self.model_path, device=self.device)
+            self.predictor = SAM2ImagePredictor(sam2_model)
+            self.generator = SAM2AutomaticMaskGenerator(sam2_model)
             self.is_ready = True
-            logger.info("SAM Loaded Successfully.")
+            logger.info("SAM2 Loaded Successfully.")
             return True
 
         except ImportError:
-            logger.error("SAM Library missing. pip install segment-anything")
+            logger.error("SAM2 Library missing. pip install sam2")
             return False
         except Exception as e:
-            logger.error(f"SAM Load Error: {e}")
+            logger.error(f"SAM2 Load Error: {e}")
             return False
 
     def set_image(self, image: np.ndarray):
-        """Pre-computes embedding for the image (SLOW step)."""
+        """Pre-computes embedding for the image."""
         if not self.load_model():
             return
 
-        # Simple cache check
-        if hasattr(
-                self, '_last_image_shape') and self._last_image_shape == image.shape:
-            # Deep check (optional, here we trust shape + simple check for speed or assume higher level logic)
-            # Ideally we check a hash or flag. For now, let's assume if shape matches it's same session or acceptable risk for demo.
-            # Better: Store a unique ID or hash.
-            if hasattr(self, '_last_image_hash') and self._last_image_hash == hash(
-                    image.tobytes()):
-                return
+        # Cache check
+        current_hash = hash(image.tobytes())
+        if hasattr(self, '_last_image_hash') and self._last_image_hash == current_hash:
+            return
 
         try:
-            # SAM expects RGB
-            if image.shape[2] == 4:
-                input_image = cv2.cvtColor(image, cv2.COLOR_BGRA2RGB)
-            else:
-                input_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
-            self.predictor.set_image(input_image)
-            self._last_image_shape = image.shape
-            self._last_image_hash = hash(image.tobytes())
+            # SAM2 expects BGR numpy array
+            self.predictor.set_image(image)
+            self._last_image_hash = current_hash
 
         except Exception as e:
-            logger.error(f"SAM Embedding Error: {e}")
+            logger.error(f"SAM2 Embedding Error: {e}")
 
     def predict_mask(self, image: np.ndarray, point_coords=None,
                      point_labels=None) -> np.ndarray:
         """
-        Unified method to set image and predict mask.
+        Predicts mask from points or generates all masks automatically.
         """
         self.set_image(image)
 
         if point_coords is None:
-            # Generate automatic masks (not implemented in this simplified
-            # class yet)
-            pass
+            # Automatic mask generation
+            masks = self.generator.generate(image)
+            return masks
 
-        # Single point prediction
-        x, y = point_coords[0]
-        label = point_labels[0]
-        return self.predict_click(x, y, label)
+        # Click-based prediction
+        input_point = np.array(point_coords)
+        input_label = np.array(point_labels)
 
-    def predict_click(self, x: int, y: int, label: int = 1) -> np.ndarray:
-        """
-        Predicts mask from a single click.
-        Args:
-            x, y: Coordinates.
-            label: 1 (Foreground) or 0 (Background).
-        Returns:
-            Binary Mask (uint8 0/255).
-        """
-        if not self.is_ready:
-            return None
-
-        try:
-            input_point = np.array([[x, y]])
-            input_label = np.array([label])
-
-            masks, scores, logits = self.predictor.predict(
+        device_type = 'cuda' if 'cuda' in self.device else 'cpu'
+        # Automatic dtype selection for CPU vs GPU
+        dtype = torch.bfloat16 if device_type == 'cuda' else torch.float32
+        
+        with torch.inference_mode(), torch.autocast(device_type=device_type, dtype=dtype):
+            masks, scores, _ = self.predictor.predict(
                 point_coords=input_point,
                 point_labels=input_label,
-                multimask_output=True,  # We want the best 3
+                multimask_output=True,
             )
 
-            # Heuristic: Pick the one with highest score
-            best_idx = np.argmax(scores)
-            mask = masks[best_idx]
-
-            return (mask * 255).astype(np.uint8)
-
-        except Exception as e:
-            logger.error(f"SAM Predict Error: {e}")
-            return None
+        # Pick the best mask
+        best_idx = np.argmax(scores)
+        mask = masks[best_idx]
+        
+        # If mask is boolean, convert to uint8 (0, 255)
+        if mask.dtype == bool:
+            return (mask.astype(np.uint8) * 255)
+        return mask.astype(np.uint8)

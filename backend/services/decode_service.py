@@ -12,8 +12,31 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from typing import Any, Optional
+import os
+import cv2
+import numpy as np
+
+from sj_das.core.engines.vision import (
+    SAMEngine, 
+    CLIPEngine, 
+    RealESRGANEngine, 
+    VTracerEngine
+)
 
 logger = logging.getLogger(__name__)
+
+# Lazy engine providers
+def _get_sam_engine():
+    return SAMEngine() if SAMEngine is not None else None
+
+def _get_clip_engine():
+    return CLIPEngine() if CLIPEngine is not None else None
+
+def _get_esrgan_engine():
+    return RealESRGANEngine(scale=4) if RealESRGANEngine is not None else None
+
+def _get_vtracer_engine():
+    return VTracerEngine() if VTracerEngine is not None else None
 
 
 @dataclass
@@ -78,7 +101,7 @@ def run_full_pipeline(params: DecodeParams, progress_callback=None) -> DecodeRes
     _progress(6, "Generating weave matrix and validating floats...")
     result.style_label, result.style_confidence = _classify_style(image, params.style_override)
     result.weave_matrix, result.float_check_passed, result.alert = _build_weave_matrix(
-        masks, params.hook_count, result.style_label
+        params.hook_count, result.style_label
     )
     result.analysis_card = _build_analysis_card(result)
     result.weave_recommendation = _get_weave_recommendation(result.style_label)
@@ -89,49 +112,58 @@ def run_full_pipeline(params: DecodeParams, progress_callback=None) -> DecodeRes
 # ─── Pipeline Step Implementations ──────────────────────────────────────────
 
 def _preprocess(image_path: str):
-    """Upscale, deskew, denoise. Uses Real-ESRGAN if available."""
+    """Upscale, deskew, denoise. Uses Real-ESRGAN."""
     try:
-        import cv2
-        import numpy as np
         img = cv2.imread(image_path)
         if img is None:
             raise ValueError(f"Cannot read image: {image_path}")
+        
+        # Denoise first
+        img = cv2.fastNlMeansDenoisingColored(img, None, 10, 10, 7, 21)
+        
         # Upscale if dimensions too small
         h, w = img.shape[:2]
         if w < 1200:
-            scale = 1200 / w
-            img = cv2.resize(img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_LANCZOS4)
-        # Denoise
-        img = cv2.fastNlMeansDenoisingColored(img, None, 10, 10, 7, 21)
+            logger.info("Image width < 1200px, applying Real-ESRGAN upscale...")
+            engine = _get_esrgan_engine()
+            if engine:
+                img = engine.enhance(img)
+            else:
+                scale = 1200 / w
+                img = cv2.resize(img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_LANCZOS4)
+            
         return img
-    except ImportError:
-        logger.warning("OpenCV not available, skipping preprocess")
-        return image_path
+    except Exception as e:
+        logger.error(f"Preprocess error: {e}")
+        return cv2.imread(image_path)
 
 
 def _segment_sam2(image) -> dict[str, Any]:
     """Run SAM2 auto mask generation and classify regions."""
     try:
-        from sam2.build_sam import build_sam2
-        from sam2.automatic_mask_generator import SAM2AutomaticMaskGenerator
-        # Lazy-load model; requires HF_MODEL_PATH env var
-        import os
-        model_cfg = os.getenv("SAM2_MODEL_CFG", "sam2.1_hiera_l.yaml")
-        checkpoint = os.getenv("SAM2_CHECKPOINT", "sam2.1_hiera_large.pt")
-        sam2 = build_sam2(model_cfg, checkpoint)
-        generator = SAM2AutomaticMaskGenerator(sam2, points_per_side=16, pred_iou_thresh=0.86)
-        masks = generator.generate(image)
-        return {"raw_masks": masks, "regions": _classify_regions(masks, image.shape)}
+        engine = _get_sam_engine()
+        if not engine:
+            return {"raw_masks": [], "regions": {"body": None, "border": None, "pallu": None, "motifs": []}}
+            
+        masks = engine.predict_mask(image, point_coords=None) # Auto mode
+        if not masks or not isinstance(masks, list):
+            # If it's a single numpy array (click mode result), wrap it in a pseudo-mask dict
+            if isinstance(masks, np.ndarray):
+                masks = [{"segmentation": masks, "area": np.sum(masks > 0)}]
+            else:
+                return {"raw_masks": [], "regions": {"body": None, "border": None, "pallu": None, "motifs": []}}
+        
+        return {"raw_masks": masks, "regions": _classify_regions(masks)}
     except Exception as e:
-        logger.warning(f"SAM2 not available: {e}. Using mock regions.")
-        return {"raw_masks": [], "regions": {"body": None, "border": None, "pallu": None}}
+        logger.error(f"SAM2 segmentation error: {e}")
+        return {"raw_masks": [], "regions": {"body": None, "border": None, "pallu": None, "motifs": []}}
 
 
-def _classify_regions(masks, shape) -> dict[str, Any]:
+def _classify_regions(masks) -> dict[str, Any]:
     """Classify SAM2 masks into body/border/pallu/motif regions by size and position."""
     classified: dict[str, Any] = {"body": None, "border": None, "pallu": None, "motifs": []}
     # Sort by area descending
-    sorted_masks = sorted(masks, key=lambda m: m.get("area", 0), reverse=True)
+    sorted_masks: list[dict[str, Any]] = sorted(masks, key=lambda m: m.get("area", 0), reverse=True)
     for i, m in enumerate(sorted_masks[:10]):
         if i == 0:
             classified["body"] = m
@@ -196,15 +228,44 @@ def _detect_motifs(image) -> list[dict[str, Any]]:
         return []
 
 
-def _vectorize(_masks) -> str:
-    """Convert SAM2 masks to SVG via VTracer."""
+def _vectorize(masks) -> str:
+    """Convert multiple region masks to SVG via VTracer. Returns base SVG path."""
     try:
-        import vtracer
-        import tempfile, os
-        # Simplified: vectorize body region mask
-        return "/static/decoded_output.svg"
+        engine = _get_vtracer_engine()
+        if not engine:
+            return ""
+            
+        regions = masks.get("regions", {})
+        import tempfile
+        import os
+        
+        # We'll create a composite SVG or return the primary (body) SVG
+        # For simplicity in this demo, we combine the most important regions
+        main_svg_path = ""
+        
+        for name, mask_data in regions.items():
+            if mask_data is None: continue
+            
+            # motifs is a list, others are dicts
+            masks_to_process = mask_data if name == "motifs" else [mask_data]
+            
+            for i, m in enumerate(masks_to_process):
+                suffix = f"_{name}_{i}" if name == "motifs" else f"_{name}"
+                with tempfile.NamedTemporaryFile(suffix=f"{suffix}.png", delete=False) as tmp_in:
+                    # Convert to uint8 (0, 255) safely
+                    seg = m['segmentation']
+                    seg_img = (seg.astype(np.uint8) * 255) if seg.dtype == bool else seg.astype(np.uint8)
+                    cv2.imwrite(tmp_in.name, seg_img)
+                    
+                    tmp_out = tmp_in.name.replace(".png", ".svg")
+                    engine.vectorize(tmp_in.name, tmp_out)
+                    
+                    if not main_svg_path or name == "body":
+                        main_svg_path = f"/static/exports/{os.path.basename(tmp_out)}"
+                        
+        return main_svg_path
     except Exception as e:
-        logger.warning(f"VTracer not available: {e}.")
+        logger.error(f"Vectorization failed: {e}")
         return ""
 
 
@@ -241,27 +302,16 @@ def _classify_style(image, style_override: Optional[str]) -> tuple[str, float]:
     if style_override:
         return style_override, 1.0
     try:
-        import torch
-        from transformers import CLIPProcessor, CLIPModel
-        model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
-        processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
-        labels = ["Kanjivaram saree", "Banarasi saree", "Pochampally ikat saree", "Paithani saree", "plain saree"]
-        import cv2
-        from PIL import Image as PILImage
-        img_pil = PILImage.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-        inputs = processor(text=labels, images=img_pil, return_tensors="pt", padding=True)
-        with torch.no_grad():
-            outputs = model(**inputs)
-        probs = outputs.logits_per_image.softmax(dim=1)[0]
-        best = probs.argmax().item()
-        clean_labels = ["Kanjivaram", "Banarasi", "Pochampally", "Paithani", "Other"]
-        return clean_labels[best], float(probs[best])
+        engine = _get_clip_engine()
+        if engine:
+            return engine.classify_style(image)
+        return "Kanjivaram", 0.7
     except Exception as e:
         logger.warning(f"CLIP classification failed: {e}. Defaulting to 'Kanjivaram'.")
         return "Kanjivaram", 0.7
 
 
-def _build_weave_matrix(masks, hook_count: int, style: str) -> tuple[Optional[str], bool, Optional[str]]:
+def _build_weave_matrix(hook_count: int, style: str) -> tuple[Optional[str], bool, Optional[str]]:
     """Generate weave structure matrix and validate floats."""
     WEAVE_TEMPLATES = {
         "Kanjivaram": "2/2 twill",

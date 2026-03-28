@@ -59,11 +59,25 @@ async def decode_async(
             "color_count": color_count,
             "style_override": style_override,
         })
-        # Use Celery task ID for progress tracking
-        return JSONResponse({"status": "queued", "task_id": task.id})
+        return JSONResponse({
+            "status": "queued", 
+            "task_id": task.id,
+            "internal_ref": task_id
+        })
+    except ImportError:
+        # Fallback for environments without Celery installed
+        return JSONResponse({
+            "status": "error",
+            "message": "Celery worker not installed. Asynchronous processing unavailable.",
+            "task_id": task_id
+        }, status_code=501)
     except Exception as e:
-        # Fallback: return mock task_id for UI testing without Celery
-        return JSONResponse({"status": "queued_local", "task_id": task_id})
+        # Celery is installed but broker might be down
+        return JSONResponse({
+            "status": "error",
+            "message": f"Pipeline Broker Error: {str(e)}",
+            "task_id": task_id
+        }, status_code=503)
 
 
 @router.get("/decode-async/{task_id}")

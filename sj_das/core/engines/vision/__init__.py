@@ -1,7 +1,10 @@
-# Vision Engines Module
-"""
-Computer vision engines for understanding and analysis.
-"""
+# Fix for basicsr/realesrgan on newer torchvision versions
+try:
+    import torchvision
+    if not hasattr(torchvision.transforms, 'functional_tensor'):
+        torchvision.transforms.functional_tensor = torchvision.transforms.functional
+except ImportError:
+    pass
 
 try:
     from .clip_engine import CLIPEngine
@@ -19,8 +22,13 @@ except Exception:
     MiDaSDepth = None
 
 try:
-    from .advanced_vision import AdvancedVisionEngine
+    from .realesrgan_engine import RealESRGANEngine
 except Exception:
-    AdvancedVisionEngine = None
+    RealESRGANEngine = None
 
-__all__ = ['CLIPEngine', 'SAMEngine', 'MiDaSDepth', 'AdvancedVisionEngine']
+try:
+    from .vtracer_engine import VTracerEngine
+except Exception:
+    VTracerEngine = None
+
+__all__ = ['CLIPEngine', 'SAMEngine', 'MiDaSDepth', 'AdvancedVisionEngine', 'RealESRGANEngine', 'VTracerEngine']

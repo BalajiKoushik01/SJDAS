@@ -1,74 +1,71 @@
 import os
-import requests
+import tempfile
+import uuid
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
 from pydantic import BaseModel
-from typing import Optional
-from backend.routers.auth import verify_token
+from typing import Optional, List
+from backend.routers.auth import User, verify_token
+from backend.services.decode_service import run_full_pipeline, DecodeParams
 
-router = APIRouter()
+router = APIRouter(prefix="/api/v1")
 
 class DecodeResponse(BaseModel):
     job_id: str
     status: str
     message: str
-
-def run_hf_denoise(image_bytes: bytes) -> bytes:
-    """Mock call to Hugging Face Inference API for SwinIR / Real-ESRGAN"""
-    api_url = "https://api-inference.huggingface.co/models/Bingsu/Real-ESRGAN"
-    headers = {"Authorization": f"Bearer {os.environ.get('HF_API_KEY', 'mock_key')}"}
-    # In production, send image_bytes and return enhanced image
-    print("Running background Hugging Face Denoise...")
-    return image_bytes
-
-def run_sam2_extraction(image_bytes: bytes) -> bytes:
-    """Mock call to Segmind/Replicate for SAM 2 Motif Extraction"""
-    print("Running background SAM 2 extraction...")
-    return image_bytes
-
-def run_kmeans_quantization(image_bytes: bytes, color_count: int) -> dict:
-    """Mock local scikit-learn K-Means implementation for color quantization"""
-    print(f"Quantizing to strictly {color_count} colors using K-Means...")
-    # Math: Fit KMeans(n_clusters=color_count) on image pixels
-    return {"status": "quantized", "colors": ["#FFD700", "#000080"]}
-
-def apply_mechanical_constraints(width_hooks: int, ends_ppi: int):
-    """Grid Fitter: Snaps vectors to nearest hook constraints."""
-    print(f"Applying strict loom constraints: Width={width_hooks} hooks, Density={ends_ppi} PPI.")
+    result: Optional[dict] = None
 
 @router.post("/decode", response_model=DecodeResponse)
 async def upload_for_decode(
     file: UploadFile = File(...),
-    hook_count: int = Form(...),
-    ends_ppi: int = Form(...),
-    color_count: int = Form(...),
-    token: str = Depends(verify_token)
+    hook_count: int = Form(600),
+    ends_ppi: int = Form(80),
+    color_count: int = Form(6),
+    style_override: Optional[str] = Form(None),
+    current_user: User = Depends(verify_token)
 ):
     """
-    SJDAS v2.0 Agentic Loop Pipeline
+    SJDAS v2.0 Agentic Loop Pipeline (Synchronous Wrapper)
     """
     if not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="File must be an image.")
 
-    image_bytes = await file.read()
-    
-    # 1. Mechanical Constraints (Grid-Snapping Setup)
-    apply_mechanical_constraints(hook_count, ends_ppi)
+    # Save to temp file for the service
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
+        tmp.write(await file.read())
+        temp_path = tmp.name
 
-    # 2. Pipeline Execution (These would be passed to Celery in production)
-    clean_image = run_hf_denoise(image_bytes)
-    motif_vectors = run_sam2_extraction(clean_image)
-    quantized_data = run_kmeans_quantization(motif_vectors, color_count)
-
-    return {
-        "job_id": "job_agentic_loop_001",
-        "status": "processing_shadow_canvas",
-        "message": f"Decode pipeline started with {hook_count} hooks constrainment."
-    }
+    try:
+        params = DecodeParams(
+            image_path=temp_path,
+            hook_count=hook_count,
+            ends_ppi=ends_ppi,
+            color_count=color_count,
+            style_override=style_override
+        )
+        
+        # In this 'synchronous' version, we run the pipeline immediately.
+        # Note: This might timeout for very large images, hence decode_async exists.
+        result = run_full_pipeline(params)
+        
+        return {
+            "job_id": f"job_{uuid.uuid4().hex[:8]}",
+            "status": "completed",
+            "message": "Decode successful",
+            "result": vars(result)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
 
 @router.get("/decode/{job_id}")
-async def get_decode_status(job_id: str, token: str = Depends(verify_token)):
+async def get_decode_status(job_id: str, current_user: User = Depends(verify_token)):
+    # Since this router is synchronous, we don't have a status DB yet.
+    # We return a generic check (legacy path).
     return {
         "job_id": job_id,
-        "status": "completed",
-        "result_design_id": "woven_design_ready"
+        "status": "active",
+        "message": "Status polling is recommended via the /tasks endpoint."
     }
