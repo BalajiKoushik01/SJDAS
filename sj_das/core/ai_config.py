@@ -80,7 +80,7 @@ class AIConfigManager:
             ),
             "pollinations": AIProviderConfig(
                 name="Pollinations.ai",
-                endpoint="https://image.pollinations.ai/prompt/",
+                endpoint="https://pollinations.ai/p/",
                 enabled=True,  # Always enabled as fallback
                 priority=99
             )

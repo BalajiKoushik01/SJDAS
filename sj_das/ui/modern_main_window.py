@@ -64,7 +64,12 @@ class ModernMainWindow(FluentWindow):
 
         # 2. Core Setup
         self.setWindowTitle("SJ-DAS | Professional AI Textile Suite")
-        self.resize(1600, 1000)  # Professional wide default
+        
+        # Professional Default & Minimum Standards
+        # Minimum: 1024x768 (Industry Floor)
+        # Default: 1600x1000 (Wide Professional)
+        self.setMinimumSize(1024, 768)
+        self.resize(1600, 1000) 
 
         # 2. Appearance
         self._apply_professional_theme()
@@ -91,6 +96,9 @@ class ModernMainWindow(FluentWindow):
         QTimer.singleShot(2000, self._prompt_cloud_login)
 
         logger.info("ModernMainWindow initialized.")
+        
+        # Load the default view (Design) lazily after a tiny delay
+        QTimer.singleShot(100, lambda: self.switchTo(self._get_view("design")))
 
     def _bootstrap_services(self):
         """Register Enterprise Services in IoC Container."""
@@ -176,29 +184,63 @@ class ModernMainWindow(FluentWindow):
         self.startup_group.start()
 
     def _init_views(self):
-        """Initialize main views."""
-        self.designer_view = PremiumDesignerView()
-        self.designer_view.setObjectName("designerView")
+        """Initialize view placeholders for lazy loading."""
+        self.designer_view = None
+        self.production_view = None
+        self.twin_view = None
 
-        self.production_view = AssemblerView()
-        self.production_view.setObjectName("productionView")
+    def _get_view(self, view_id):
+        """Lazy-loading factory for main application views."""
+        if view_id == "design":
+            if not self.designer_view:
+                logger.info("Lazy-loading Design Studio...")
+                from sj_das.ui.modern_designer_view import PremiumDesignerView
+                self.designer_view = PremiumDesignerView()
+                self.designer_view.setObjectName("designerView")
+                self.addSubInterface(self.designer_view, FluentIcon.EDIT, "Design Studio")
+            return self.designer_view
 
-        self.twin_view = DigitalTwinView()
-        self.twin_view.setObjectName("twinView")
+        elif view_id == "production":
+            if not self.production_view:
+                logger.info("Lazy-loading Loom Production...")
+                from sj_das.ui.assembler_view import AssemblerView
+                self.production_view = AssemblerView()
+                self.production_view.setObjectName("productionView")
+                self.addSubInterface(self.production_view, FluentIcon.IOT, "Loom Production")
+            return self.production_view
+
+        elif view_id == "twin":
+            if not self.twin_view:
+                logger.info("Lazy-loading Digital Twin...")
+                from sj_das.ui.digital_twin_view import DigitalTwinView
+                self.twin_view = DigitalTwinView()
+                self.twin_view.setObjectName("twinView")
+                self.addSubInterface(self.twin_view, FluentIcon.ZOOM, "Digital Twin")
+            return self.twin_view
+        return None
 
     def _init_navigation(self):
-        """Build the navigation side bar."""
+        """Build the navigation side bar with lazy-loading triggers."""
 
-        # Primary Modules
-        self.addSubInterface(
-            self.designer_view,
-            FluentIcon.EDIT,
-            "Design Studio")
-        self.addSubInterface(
-            self.production_view,
-            FluentIcon.IOT,
-            "Loom Production")
-        self.addSubInterface(self.twin_view, FluentIcon.ZOOM, "Digital Twin")
+        # Primary Modules (Registered as Navigation Items first)
+        self.navigationInterface.addItem(
+            routeKey="design",
+            icon=FluentIcon.EDIT,
+            text="Design Studio",
+            onClick=lambda: self.switchTo(self._get_view("design"))
+        )
+        self.navigationInterface.addItem(
+            routeKey="production",
+            icon=FluentIcon.IOT,
+            text="Loom Production",
+            onClick=lambda: self.switchTo(self._get_view("production"))
+        )
+        self.navigationInterface.addItem(
+            routeKey="twin",
+            icon=FluentIcon.ZOOM,
+            text="Digital Twin",
+            onClick=lambda: self.switchTo(self._get_view("twin"))
+        )
 
         self.navigationInterface.addSeparator()
 
@@ -246,9 +288,10 @@ class ModernMainWindow(FluentWindow):
     def _toggle_ai_panel(self):
         # Implementation depends on AI Panel architecture (Dock vs Window)
         # For now, we delegate to Designer View which likely holds the panel
-        if hasattr(self.designer_view, "toggle_ai_panel"):
-            self.switchTo(self.designer_view)  # Ensure view is active
-            self.designer_view.toggle_ai_panel()
+        view = self._get_view("design")
+        if view and hasattr(view, "toggle_ai_panel"):
+            self.switchTo(view)  # Ensure view is active
+            view.toggle_ai_panel()
         else:
             self._show_notification(
                 "AI Assistant",

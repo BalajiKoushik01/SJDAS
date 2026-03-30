@@ -1,9 +1,8 @@
-
 import logging
-
-from PyQt6.QtWidgets import QFrame, QLabel, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QFrame, QLabel, QVBoxLayout, QWidget, QScrollArea, QStackedWidget, QSizePolicy
+from PyQt6.QtCore import Qt
 from qfluentwidgets import PushButton as FluentPushButton
-from qfluentwidgets import TabWidget
+from qfluentwidgets import TabWidget, Pivot, SegmentedWidget
 
 from sj_das.ui.components.layers_panel import LayersPanel
 from sj_das.ui.components.panels import HistoryPanel, PalettePanel
@@ -34,50 +33,76 @@ class PanelFactory:
         self.editor = view.editor
 
     def create_right_panels(self) -> QFrame:
-        """Create professional right panels container"""
-        from PyQt6.QtWidgets import QScrollArea
-        from PyQt6.QtCore import Qt
+        """Create professional right panels with Focus Mode Switcher"""
+        # Main Container (Right Sidebar)
+        self.right_sidebar = QFrame()
+        self.right_sidebar.setObjectName("rightSidebar")
+        self.right_sidebar.setFixedWidth(300)
+        self.right_sidebar.setStyleSheet(f"""
+            QFrame#rightSidebar {{
+                background-color: {COLORS['bg_secondary']};
+                border-left: 1px solid {COLORS['border_subtle']};
+            }}
+        """)
+        
+        main_layout = QVBoxLayout(self.right_sidebar)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
 
-        right_panels = QScrollArea()
-        right_panels.setObjectName("rightPanelsScroll")
-        right_panels.setWidgetResizable(True)
-        right_panels.setFrameShape(QFrame.Shape.NoFrame)
-        right_panels.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        
-        # Container for content
-        container = QFrame()
-        container.setObjectName("rightPanels")
-        
-        layout = QVBoxLayout(container)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
+        # 1. Focus Mode Switcher (Pivot)
+        self.focus_pivot = Pivot(self.right_sidebar)
+        main_layout.addWidget(self.focus_pivot)
 
-        # Tabs
-        self.view.tabs = TabWidget()  # Attach to view for accessibility if needed
-        tabs = self.view.tabs
-        
-        # Allow Tabs to expand/shrink
-        tabs.setMinimumHeight(600) # Ensure it doesn't shrink too much inside scroll
+        # 2. Panel Stack (Context-aware content)
+        self.panel_stack = QStackedWidget(self.right_sidebar)
+        main_layout.addWidget(self.panel_stack)
 
-        # Create panels
-        tabs.addTab(self.create_navigator_panel(), "Navigator")
-        tabs.addTab(self.create_colors_panel(), "Colors")
-        tabs.addTab(self.create_yarn_panel(), "Yarn")
-        tabs.addTab(self.create_weaves_panel(), "Weaves")
-        tabs.addTab(self.create_ai_panel(), "AI")
-        tabs.addTab(self.create_layers_panel(), "Layers")
-        tabs.addTab(self.create_history_panel(), "History")
-        tabs.addTab(self.create_pattern_library_panel(), "Patterns")
+        # --- CATEGORY: DESIGN (Navigator, Layers, History) ---
+        design_page = QWidget()
+        design_layout = QVBoxLayout(design_page)
+        design_layout.setContentsMargins(8, 8, 8, 8)
+        design_layout.addWidget(self._create_panel_group("Navigator", self.create_navigator_panel()))
+        design_layout.addWidget(self._create_panel_group("Layers", self.create_layers_panel()))
+        design_layout.addWidget(self._create_panel_group("History", self.create_history_panel()))
+        design_layout.addStretch()
+        
+        self.panel_stack.addWidget(design_page)
+        self.focus_pivot.addItem("design", "Design", lambda: self.panel_stack.setCurrentWidget(design_page))
 
-        layout.addWidget(tabs)
+        # --- CATEGORY: MATERIALS (Colors, Yarn, Weaves, Patterns) ---
+        materials_page = QWidget()
+        materials_layout = QVBoxLayout(materials_page)
+        materials_layout.setContentsMargins(8, 8, 8, 8)
+        materials_layout.addWidget(self._create_panel_group("Colors", self.create_colors_panel()))
+        materials_layout.addWidget(self._create_panel_group("Yarn Palette", self.create_yarn_panel()))
+        materials_layout.addWidget(self._create_panel_group("Weaves", self.create_weaves_panel()))
+        materials_layout.addWidget(self._create_panel_group("Patterns", self.create_pattern_library_panel()))
+        materials_layout.addStretch()
         
-        right_panels.setWidget(container)
+        self.panel_stack.addWidget(materials_page)
+        self.focus_pivot.addItem("materials", "Materials", lambda: self.panel_stack.setCurrentWidget(materials_page))
+
+        # --- CATEGORY: AI LAB (AI Toolbox) ---
+        ai_page = self.create_ai_panel()
+        self.panel_stack.addWidget(ai_page)
+        self.focus_pivot.addItem("ai", "AI Lab", lambda: self.panel_stack.setCurrentWidget(ai_page))
+
+        # Finalize
+        self.focus_pivot.setCurrentItem("design")
+        return self.right_sidebar
+
+    def _create_panel_group(self, title, content_widget):
+        """Wraps a panel in a collapsible-looking frame."""
+        group = QFrame()
+        group.setStyleSheet("QFrame { background: transparent; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }")
+        layout = QVBoxLayout(group)
+        layout.setContentsMargins(0, 5, 0, 5)
         
-        # Constraints are now on the ScrollArea
-        right_panels.setMinimumWidth(50)   
-        right_panels.setMaximumWidth(600)  
-        
-        return right_panels
+        lbl = QLabel(title.upper())
+        lbl.setStyleSheet("font-size: 10px; font-weight: bold; color: #94A3B8; letter-spacing: 1px;")
+        layout.addWidget(lbl)
+        layout.addWidget(content_widget)
+        return group
 
     def create_pattern_library_panel(self):
         from sj_das.ui.components.pattern_library import PatternLibraryWidget

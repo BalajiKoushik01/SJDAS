@@ -106,12 +106,16 @@ class RemoteAIEngine:
         seed = random.randint(0, 99999)
         url = f"https://image.pollinations.ai/prompt/{encoded}?width=1024&height=1024&seed={seed}&nologo=true"
 
+        # 2. Robust Network Request
+        # Certificate verification is now enabled for security.
+        # Added User-Agent to resolve potential 401 Unauthorized (Bot Block).
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        }
+        
         try:
             print(f"Requesting Pollinations AI (Optimized): {final_prompt}")
-
-            # 2. Robust Network Request
-            # Certificate verification is now enabled for security.
-            response = requests.get(url, timeout=45, verify=True)
+            response = requests.get(url, headers=headers, timeout=45, verify=True)
 
             if response.status_code == 200:
                 image_bytes = response.content

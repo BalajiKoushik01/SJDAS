@@ -19,8 +19,7 @@ class StandardMenuBuilder:
         self.layout = layout
 
     def build_all(self):
-        """Constructs the entire Fluent Tool Options Bar."""
-        # Add spacing between logical groups
+        """Standard build (Legacy support)."""
         self.build_file_menu()
         self.build_edit_menu()
         self.build_view_menu()
@@ -47,7 +46,7 @@ class StandardMenuBuilder:
 
         # Voice Control (Special Action Button)
         btn_voice = DropDownPushButton("🎙️ Voice", self.view)
-        btn_voice.clicked.connect(self.view.activate_voice_control)
+        btn_voice.clicked.connect(lambda: self.view.activate_voice_control())
         btn_voice.setStyleSheet(
             "background-color: #EF4444; "
             "color: white; "
@@ -56,6 +55,53 @@ class StandardMenuBuilder:
             "padding: 6px 12px;"
         )
         self._add_btn(btn_voice)
+
+    def populate_ribbon(self, ribbon):
+        """Populates the new RibbonBar with categorized tools."""
+        from qfluentwidgets import FluentIcon as FIF
+        
+        # 1. HOME CATEGORY
+        home = ribbon.add_category("home", "Home", FIF.HOME)
+        home.add_tool("New", FIF.FOLDER, lambda: self.view.new_file(), "Create New Design")
+        home.add_tool("Open", FIF.FOLDER_ADD, lambda: self.view.open_file(), "Open Existing")
+        home.add_tool("Save", FIF.SAVE, lambda: self.view.save_file(), "Save Design")
+        home.add_separator()
+        home.add_tool("Undo", FIF.CANCEL, lambda: self.view.undo(), "Undo (Ctrl+Z)")
+        home.add_tool("Redo", FIF.SYNC, lambda: self.view.redo(), "Redo (Ctrl+Y)")
+
+        # 2. DESIGN CATEGORY
+        design = ribbon.add_category("design", "Design", FIF.EDIT)
+        design.add_tool("Selection", FIF.CHECKBOX, lambda: None, "Selection Tools")
+        design.add_tool("Magic Wand", FIF.IOT, lambda: self.view.activate_magic_wand(), "AI Selection")
+        design.add_separator()
+        design.add_tool("Layers", FIF.ADD, lambda: self.view.focus_panel("design"), "Manage Layers")
+        design.add_tool("Grid", FIF.TILES, lambda: self.view.toggle_grid(), "Toggle Canvas Grid")
+
+        # 3. TEXTILE CATEGORY
+        textile = ribbon.add_category("textile", "Textile", FIF.TILES)
+        textile.add_tool("Weave Sim", FIF.TILES, lambda: self.view.show_fabric_simulation(), "Simulate Fabric")
+        textile.add_tool("3D Drape", FIF.TILES, lambda: self.view.show_3d_fabric_view(), "3D Saree Drape Simulation")
+        textile.add_tool("Detect", FIF.SEARCH, lambda: self.view.detect_pattern_from_image(), "Identify Patterns")
+        textile.add_separator()
+        textile.add_tool("Export", FIF.SAVE, lambda: self.view.export_to_loom(), "Save for Loom (.WIF)")
+        textile.add_tool("Weave Master", FIF.TILES, lambda: self.view.apply_weave(), "Advanced Weave Tool")
+
+        # 4. AI SUITE CATEGORY
+        ai = ribbon.add_category("ai", "AI Suite", FIF.ROBOT)
+        ai.add_tool("Assistant", FIF.CHAT, lambda: self.view.activate_ai_chat(), "AI Chat Agent")
+        ai.add_tool("Generator", FIF.ROBOT, lambda: self.view.show_ai_pattern_gen(), "Generate New Patterns")
+        ai.add_separator()
+        ai.add_tool("Upscale", FIF.ZOOM_IN, lambda: self.view.apply_ai_upscale_4x(), "AI 4x Upscaling")
+        ai.add_tool("Segment", FIF.PHOTO, lambda: self.view.auto_segment(), "AI Segmentation (SAM2)")
+
+        # 5. VIEW/SYSTEM CATEGORY
+        view = ribbon.add_category("view", "View", FIF.VIEW)
+        view.add_tool("Rulers", FIF.SEARCH, lambda: None, "Toggle Rulers")
+        view.add_tool("Settings", FIF.SETTING, lambda: self.view.show_preferences(), "App Settings")
+        view.add_separator()
+        view.add_tool("Help", FIF.HELP, lambda: self.view.show_about_dialog(), "Developer Support")
+
+        ribbon.finalize()
 
     def _add_btn(self, btn, add_spacing_after=False):
         """Add button with consistent sizing and optional spacing."""
@@ -70,20 +116,20 @@ class StandardMenuBuilder:
     def build_file_menu(self):
         btn = DropDownPushButton("File", self.view)
         menu = Menu(parent=self.view)
-        menu.addAction(Action(FIF.FOLDER, "New", triggered=self.view.new_file))
+        menu.addAction(Action(FIF.FOLDER, "New", triggered=lambda: self.view.new_file()))
         menu.addAction(
             Action(
                 FIF.FOLDER_ADD,
                 "Open",
-                triggered=self.view.open_file))
-        menu.addAction(Action(FIF.SAVE, "Save", triggered=self.view.save_file))
+                triggered=lambda: self.view.open_file()))
+        menu.addAction(Action(FIF.SAVE, "Save", triggered=lambda: self.view.save_file()))
         menu.addAction(
             Action(
                 FIF.SAVE_AS,
                 "Save As",
-                triggered=self.view.save_file_as))
+                triggered=lambda: self.view.save_file_as()))
         menu.addSeparator()
-        menu.addAction(Action(FIF.CLOSE, "Exit", triggered=self.view.close))
+        menu.addAction(Action(FIF.CLOSE, "Exit", triggered=lambda: self.view.close()))
         btn.setMenu(menu)
         self._add_btn(btn)
 

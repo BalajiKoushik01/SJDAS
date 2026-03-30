@@ -63,6 +63,9 @@ class AcrylicToolbar(QFrame):
         self._add_tool("text", FIF.FONT_SIZE, "Text (T)")
         self._add_tool("upscale", FIF.ZOOM_IN, "Upscale 4x")
         self._add_tool("met", FIF.BOOK_SHELF, "Met Museum Inspiration")
+        
+        self._add_group("VIEW")
+        self._add_tool("grid_toggle", FIF.VIEW, "Toggle Grid (Ctrl+G)")
 
         self.layout.addStretch()
 
@@ -76,7 +79,7 @@ class AcrylicToolbar(QFrame):
         btn.setFixedSize(40, 40)
         btn.setIconSize(QSize(20, 20))
         btn.setToolTip(tooltip)
-        btn.installEventFilter(ToolTipFilter(btn, 0))  # Fluent Tooltip
+        btn.installEventFilter(ToolTipFilter(btn))  # Fluent Tooltip
 
         btn.clicked.connect(lambda: self.tool_triggered.emit(tool_id))
         self.layout.addWidget(btn)

@@ -148,41 +148,7 @@ class PixelEditorWidget(QGraphicsView):
 
         self.zoom_factor = 1.0
 
-    def drawBackground(self, painter, rect):
-        """High-performance Grid Rendering."""
-        super().drawBackground(painter, rect)
-
-        if not self.show_grid or self.grid_spacing <= 0:
-            return
-
-        # Optimization: Don't draw 1px grid if zoomed out too far
-        if self.grid_spacing == 1 and self.zoom_factor < 2.0:
-            return # Too dense to display useful info
-
-        left = int(rect.left())
-        right = int(rect.right())
-        top = int(rect.top())
-        bottom = int(rect.bottom())
-
-        # Snap to grid
-        first_left = left - (left % self.grid_spacing)
-        first_top = top - (top % self.grid_spacing)
-
-        # Draw lines
-        lines = []
-        
-        # Vertical
-        for x in range(first_left, right, self.grid_spacing):
-            lines.append(QLineF(x, top, x, bottom))
-
-        # Horizontal
-        for y in range(first_top, bottom, self.grid_spacing):
-            lines.append(QLineF(left, y, right, y))
-            
-        if lines:
-            painter.setPen(QPen(self.grid_color, 0)) # Cosmetic pen
-            painter.drawLines(lines)
-        
+        # --- INITIALIZATION (Moved from drawBackground) ---
         # Dimensions (Fix for AttributeError)
         self.canvas_width = 2400  # Default professional size
         self.canvas_height = 3000
@@ -199,6 +165,14 @@ class PixelEditorWidget(QGraphicsView):
         self.brush_opacity = 100  # Phase 10: Brush Opacity
 
         # Initialize Tools Strategy Pattern
+        from sj_das.tools import (
+            BrushTool, FillTool, GradientTool, PanTool, PerspectiveTool,
+            PickerTool, LassoTool, MagicWandTool, EllipseTool, LineTool,
+            RectTool, RectSelectTool, CloneTool, TextTool
+        )
+        from sj_das.tools.smudge import SmudgeTool
+        from sj_das.tools.eraser import EraserTool
+
         self.tools = {
             self.TOOL_BRUSH: BrushTool(self, is_eraser=False),
             self.TOOL_ERASER: EraserTool(self),
@@ -261,6 +235,72 @@ class PixelEditorWidget(QGraphicsView):
         self.corner_box.setStyleSheet(
             "background-color: #282828; color: #888; font-size: 10px;")
         self.corner_box.resize(self.ruler_size, self.ruler_size)
+
+    def drawBackground(self, painter, rect):
+        """High-performance Smart Grid Rendering."""
+        super().drawBackground(painter, rect)
+
+        if not self.show_grid:
+            return
+
+        # --- SMART GRID SCALING (1px to 10px) ---
+        # Logic: If zoomed out, show 10px major lines. 
+        # If zoomed in, show 1px fine grid.
+        
+        base_spacing = self.grid_spacing if self.grid_spacing > 0 else 1
+        visual_spacing = base_spacing
+        
+        # Auto-scale threshold
+        # If pixels are smaller than 3px on screen, show every 10th line
+        if (base_spacing * self.zoom_factor) < 3.0:
+            visual_spacing = base_spacing * 10
+            
+        # If still too small, show every 100th line (Safety for 10K+ canvases)
+        if (visual_spacing * self.zoom_factor) < 3.0:
+            visual_spacing = base_spacing * 100
+
+        from PyQt6.QtCore import QLineF
+        left = int(rect.left())
+        right = int(rect.right())
+        top = int(rect.top())
+        bottom = int(rect.bottom())
+
+        # Snap to grid
+        first_left = left - (left % visual_spacing)
+        first_top = top - (top % visual_spacing)
+
+        # Draw lines
+        lines = []
+        
+        # Optimization: Major Lines (10x unit)
+        major_lines = []
+        major_spacing = visual_spacing * 10
+
+        # Vertical
+        for x in range(first_left, right, visual_spacing):
+            if x % major_spacing == 0:
+                major_lines.append(QLineF(float(x), float(top), float(x), float(bottom)))
+            else:
+                lines.append(QLineF(float(x), float(top), float(x), float(bottom)))
+
+        # Horizontal
+        for y in range(first_top, bottom, visual_spacing):
+            if y % major_spacing == 0:
+                major_lines.append(QLineF(float(left), float(y), float(right), float(y)))
+            else:
+                lines.append(QLineF(float(left), float(y), float(right), float(y)))
+            
+        # Draw Minor Grid
+        if lines:
+            painter.setPen(QPen(self.grid_color, 0)) # Cosmetic pen
+            painter.drawLines(lines)
+            
+        # Draw Major Grid (More visible)
+        if major_lines:
+            major_color = QColor(self.grid_color)
+            major_color.setAlpha(min(255, major_color.alpha() * 2))
+            painter.setPen(QPen(major_color, 0))
+            painter.drawLines(major_lines)
 
     def set_pattern(self, pattern):
         """Sets the active pattern for Fill/Bucket tools."""

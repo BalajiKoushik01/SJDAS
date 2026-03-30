@@ -72,7 +72,7 @@ class CreativeLobe(BaseLobe):
         logger.info(f"Dreaming of: {prompt}")
         seed = random.randint(0, 999999)
         enhanced_prompt = f"seamless texture, {prompt}, high quality textile pattern"
-        url = f"https://image.pollinations.ai/prompt/{enhanced_prompt}?width=1024&height=1024&seed={seed}&model=flux&nologo=true"
+        url = f"https://pollinations.ai/p/{enhanced_prompt}?width=1024&height=1024&seed={seed}&model=flux&nologo=true"
 
         self._start_worker(url)
 
