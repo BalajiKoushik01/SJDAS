@@ -272,6 +272,25 @@ class ModelManager(QObject):
             self.model_error.emit(error_msg)
             return False
 
+    def load_minimax(self, api_key: Optional[str] = None) -> bool:
+        """Configure the optional MiniMax adapter only when a key is supplied."""
+        from sj_das.core.engines.llm.minimax_engine import MiniMaxEngine
+        key = api_key or os.getenv("MINIMAX_API_KEY", "")
+        if not key:
+            return False
+        engine = MiniMaxEngine()
+        if not engine.configure(key):
+            return False
+        self.models["minimax"] = engine
+        self.model_loaded.emit("minimax")
+        return True
+
+    def get_minimax(self):
+        """Return a configured MiniMax engine, or None without credentials."""
+        if "minimax" not in self.models:
+            self.load_minimax()
+        return self.models.get("minimax")
+
     def get_llm(self):
         """Get loaded LLM engine."""
         if self.llm_engine is None:

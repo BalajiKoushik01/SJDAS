@@ -112,6 +112,13 @@ class ImageCache:
         key = self._generate_key(image, operation, params)
         result_size = result.nbytes
 
+        # Account for replacing an existing entry before enforcing the memory budget.
+        if key in self.cache:
+            previous = self.cache.pop(key)
+            self.current_size -= previous.nbytes
+        if result_size > self.max_size:
+            return
+
         # Evict old entries if needed
         while self.current_size + result_size > self.max_size and self.cache:
             evict_key, evict_value = self.cache.popitem(
@@ -155,6 +162,9 @@ class ImageCache:
         """Clear all cached entries."""
         self.cache.clear()
         self.current_size = 0
+        self.hits = 0
+        self.misses = 0
+        self.evictions = 0
         logger.info("Cache cleared")
 
     def __repr__(self) -> str:
