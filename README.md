@@ -1,93 +1,56 @@
-# SJDAS v2.2.0: Stabilized AI Jacquard Designer
-**The Definitive Jacquard Design & Cloud AI Synergy (Pilot Ready)**
+# SJDAS — Jacquard design automation research
 
-SJDAS (Smart Jacquard Design Automation System) is an enterprise-grade studio designed to revolutionize the textile manufacturing workflow. By fusing a high-performance PyQt6 desktop core with asynchronous Cloud AI workers, SJDAS enables designers to generate, validate, and export 100% production-ready machine files directly to industrial Jacquard looms with unprecedented speed and precision.
+SJDAS is a Python-based jacquard-pattern design workspace. The repository includes a PyQt6 desktop interface, image-processing and drafting modules, FastAPI services, loom-oriented export experiments, tests and design notes.
 
----
+**Status:** active engineering work / prototype. This README documents the code present in the repository. It does not certify a particular loom controller, a production release, zero defects or full test coverage.
 
-## 🛡️ Enterprise Security & Reliability
-SJDAS is built for the rigors of modern B2B SaaS environments:
-- **Encrypted Synchronization:** All network traffic is secured via industry-standard SSL/TLS (v1.2+) with mandatory verification.
-- **Tenant Isolation:** Multi-tenant architecture powered by Supabase RLS (Row Level Security), ensuring absolute data privacy for every factory.
-- **Fail-Safe Processing:** Asynchronous Celery workers handle heavy AI computations (SAM2, DreamPaint) in the cloud, keeping the desktop UI responsive.
-- **Strict Validation:** Proactive float-checking algorithms prevent costly loom snagging.
-- **Definitive Stabilization (v2.2.0):** Achieved **100% Pass Rate** in the comprehensive UI/UX and AI test suite, ensuring crash-free Ribbon navigation and tool execution.
-- **Architecture Hardening:** Consolidated 5,000+ lines of experimental code into a verified, signal-robust controller for production-grade reliability.
+## Repository map
 
-See the [STABILITY_REPORT.md](STABILITY_REPORT.md) for detailed test results and architectural hardening specifics.
+| Location | Purpose |
+| --- | --- |
+| `launcher.py` | Starts the PyQt6 desktop app and initialises services |
+| `sj_das/` | Designer UI, textile processing and supporting modules |
+| `backend/main.py` | FastAPI application with analysis, export and integration routers |
+| `backend/routers/` | API modules grouped by operation |
+| `tests/` | Test modules for core functionality and integration cases |
+| `docs/` | Specifications, integration notes and project discussions |
+| `docker-compose.yml` | Backend API and Redis development stack |
 
----
+## Development setup
 
-## ✨ Core Feature Suite
+The application is desktop-first. Use a Python virtual environment; install dependencies for the part you intend to run.
 
-### 🎨 Screenshot → Design Decode Pipeline
-The crown jewel of SJDAS. Upload any photo—even a blurry phone screenshot of a saree or a WhatsApp forward—and SJDAS will:
-- **Perspective Correction:** Auto-deskew and correct homography for off-angle photos.
-- **AI Segmentation:** Utilize **SAM2 (Segment Anything Model 2)** to isolate body, border, and pallu regions.
-- **Vectorization:** Convert raster motifs into clean, editable SVG paths using **VTracer**.
-- **Color Separation:** Intelligently reduce 16M colors into a production-ready yarn palette (2–256 colors).
-
-- **Modern Ribbon UI:** High-performance category-based navigation (Home, Design, AI, Textile) for an industry-standard "Photoshop-quality" layout.
-- **Asynchronous Canvas Intelligence:** A zero-latency environment with fluid micro-animations and background AI suggestions (Cortex & OmniBar).
-- **Hybrid Drafting:** Edit raster pixel grids and vector SVG paths simultaneously on a unified canvas.
-- **Stock-Aware Recolor:** Real-time CIEDE2000 Delta-E color matching against physical thread inventory.
-- **Autonomous Healing:** AI-powered dust removal and pattern-completion tools strictly optimized for woven textile constraints.
-
-### 🧠 Advanced AI Orchestration
-- **SAM 2 Magic Tracer:** Instant, high-fidelity motif extraction and vectorization.
-- **Conversational Copilot:** Integrated AI Assistant (powered by MiniMax M2.1) for design suggestions and voice-commanded pattern generation.
-- **Pattern Diffusion:** Generate high-resolution, tileable patterns directly within the designer workspace using StyleGAN2-ADA.
-
-### 🏭 Industrial Loom Precision
-- **DirectJC5 / Staubli / JC5 / WIF:** Native binary export support for major industrial loom controllers.
-- **8-Bit Hardware Compliance:** Strict 8-bit indexed BMP compilation for legacy controller compatibility.
-- **High-Hook Density:** Optimized for 600 to 12,000+ hook configurations.
-
----
-
-## 🏗️ System Architecture
-SJDAS follows a hybrid architecture to balance performance and accessibility:
-- **Desktop Core (PyQt6):** Low-latency editor and direct hardware communication (Loom TCP/IP bridge).
-- **Cloud Backend (FastAPI):** High-power AI processing nodes running SAM2 and Real-ESRGAN.
-- **Web Portal (Next.js):** B2B management dashboard for design libraries and factory monitoring.
-
----
-
-## 🚀 Deployment & Installation
-
-### Desktop Application
-1. **Clone & Environment:**
-   ```bash
-   git clone https://github.com/BalajiKoushik01/SJDAS.git
-   cd SJDAS
-   # Configure .env based on .env.example
-   ```
-2. **Standard Setup:**
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # venv\Scripts\activate on Windows
-   pip install -r requirements.txt
-   python launcher.py
-   ```
-
-### Cloud Services (FastAPI + Next.js)
-Detailed deployment guides for the **SJDAS Cloud Portal** (Next.js) and the **Worker Engine** (FastAPI) can be found in the `web/` and `backend/` directories respectively. See [DEPLOYMENT.md](DEPLOYMENT.md) for production orchestration via Docker Compose.
-
----
-
-## 🧪 Quality Assurance
-SJDAS maintains 100% coverage on core geometry and command utilities.
 ```bash
-pytest tests/ --cov=sj_das
+git clone https://github.com/BalajiKoushik01/SJDAS.git
+cd SJDAS
+python -m venv .venv
+# Windows: .venv\Scripts\activate
+# macOS/Linux: source .venv/bin/activate
+pip install -r requirements.txt
+python launcher.py
 ```
 
----
+Some PyQt, Torch, computer-vision and graphics modules depend on OS libraries, GPU support or separately provisioned model weights. If installation fails, inspect the imported modules and platform requirements before treating it as a code defect.
 
-## 🏢 Commercial Support & Licensing
-SJDAS is a proprietary software solution. For Enterprise Licensing, Custom Loom Driver Integration, or Priority Support, please contact the SJDAS Professional Services team.
+The API has a separate dependency list at `backend/requirements.txt`. Its startup validates production-related settings, including JWT configuration and allowed origins. See `DEPLOYMENT.md` and the relevant environment example before exposing endpoints.
 
-**Authors:** [Balaji Koushik](https://github.com/BalajiKoushik01) & The SJDAS Engineering Team
-**GitHub:** [BalajiKoushik01/SJDAS](https://github.com/BalajiKoushik01/SJDAS)
+## Tests
 
----
-*Empowering the world's finest weaving houses with Artificial Intelligence.*
+```bash
+python -m pytest tests/
+```
+
+Pytest settings in `pyproject.toml` enable coverage reporting. No assertion about current pass rate or percentage coverage is made here; run the suite in the target environment and record results before a release.
+
+## Before using exported designs on a loom
+
+- Verify dimensions, indexed colours, float lengths and controller-specific output requirements.
+- Review each design in the factory's normal inspection workflow.
+- Test on the intended loom/controller combination and document the result.
+- Do not assume that source-code support for an export format proves hardware interoperability.
+
+See the project specifications and `docs/product/` for design intent. Those documents may describe planned behaviour, not necessarily fully implemented features.
+
+## Security and deployment
+
+Keep factory credentials, model keys and tenant data out of Git. Production operation requires independent assessment of authentication, storage, background workers and equipment safety. None of the repository's promotional version labels is evidence of external certification.
