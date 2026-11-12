@@ -149,22 +149,18 @@ class TestInputValidator:
         image = QImage(100, 100, QImage.Format.Format_RGB32)
         image.fill(Qt.GlobalColor.white)
 
-        validated = InputValidator.validate_image(image)
-        assert validated.width() == 100
-        assert validated.height() == 100
+        assert InputValidator.validate_image(image) is True
 
     def test_validate_image_null(self):
         """Test null image."""
         image = QImage()
-        with pytest.raises(ValidationError):
-            InputValidator.validate_image(image)
+        assert InputValidator.validate_image(image) is False
 
     def test_validate_image_too_large(self):
         """Test image too large."""
         # Create image larger than max dimensions
         image = QImage(10000, 10000, QImage.Format.Format_RGB32)
-        with pytest.raises(ValidationError):
-            InputValidator.validate_image(image)
+        assert InputValidator.validate_image(image) is False
 
 
 class TestMemoryManager:

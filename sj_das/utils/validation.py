@@ -137,35 +137,32 @@ class InputValidator:
 
     @staticmethod
     def validate_image(image) -> bool:
-        """
-        Validate image (supports both numpy arrays and QImage).
+        """Check image shape and size before image-processing allocations.
 
-        Args:
-            image: Image to validate (numpy array or QImage)
-
-        Returns:
-            True if valid, False otherwise
+        Returns a boolean because existing quantizer callers use this as a
+        predicate; invalid inputs are not raised as exceptions.
         """
         import numpy as np
 
-        # Handle numpy arrays
         if isinstance(image, np.ndarray):
-            if image.size == 0:
+            if image.size == 0 or image.ndim not in (2, 3):
                 return False
-            if len(image.shape) not in [2, 3]:
+            if image.ndim == 3 and image.shape[2] not in (1, 3, 4):
                 return False
-            if len(image.shape) == 3 and image.shape[2] not in [1, 3, 4]:
-                return False
-            return True
+            height, width = image.shape[:2]
+            return (
+                0 < width <= EditorConstants.MAX_IMAGE_WIDTH
+                and 0 < height <= EditorConstants.MAX_IMAGE_HEIGHT
+                and image.nbytes <= EditorConstants.MAX_IMAGE_SIZE_MB * 1024 * 1024
+            )
 
-        # Handle QImage
-        if hasattr(image, 'isNull'):
-            if image.isNull():
-                return False
-            if image.width() == 0 or image.height() == 0:
-                return False
-            return True
-
+        if isinstance(image, QImage):
+            return (
+                not image.isNull()
+                and 0 < image.width() <= EditorConstants.MAX_IMAGE_WIDTH
+                and 0 < image.height() <= EditorConstants.MAX_IMAGE_HEIGHT
+                and image.sizeInBytes() <= EditorConstants.MAX_IMAGE_SIZE_MB * 1024 * 1024
+            )
         return False
 
     @staticmethod

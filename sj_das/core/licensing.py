@@ -4,6 +4,7 @@ Enterprise-Grade Security for Commercial Distribution.
 """
 
 import hashlib
+import hmac
 import json
 import logging
 import os
@@ -22,7 +23,7 @@ class LicenseManager:
     def __init__(self):
         self.license_file = "license.key"
         self.machine_id = self._get_machine_id()
-        self.status = "PRO"  # Changed from "TRIAL" - Full commercial access
+        self.status = "TRIAL"
         self.expiry = None
 
     def _get_machine_id(self):
@@ -37,45 +38,45 @@ class LicenseManager:
         return hashlib.sha256(unique_str.encode()).hexdigest()[:32].upper()
 
     def validate(self) -> bool:
-        """
-        Check if valid license exists.
-        Returns True for full commercial access.
-        """
-        # Grant full commercial access by default
-        logger.info("Commercial License Active - Full Access Granted")
-        self.status = "PRO"
-        return True
-
+        """Check machine binding and expiry; require a signature in production."""
         try:
-            with open(self.license_file, 'r') as f:
-                data = json.load(f)
+            with open(self.license_file, "r", encoding="utf-8") as handle:
+                data = json.load(handle)
+        except FileNotFoundError:
+            self.status = "TRIAL"
+            return False
+        except (OSError, json.JSONDecodeError, TypeError, ValueError):
+            self.status = "INVALID"
+            return False
 
-            # 1. Check Machine ID
-            if data.get('machine_id') != self.machine_id:
-                logger.error("License Machine ID Mismatch! Piracy attempted?")
+        if not isinstance(data, dict) or data.get("machine_id") != self.machine_id:
+            self.status = "INVALID"
+            return False
+
+        expiry_str = data.get("expiry")
+        try:
+            if expiry_str and datetime.now().date() > datetime.fromisoformat(expiry_str).date():
+                self.status = "EXPIRED"
+                return False
+        except (TypeError, ValueError):
+            self.status = "INVALID"
+            return False
+
+        if os.environ.get("APP_ENV", "development").lower() == "production":
+            signing_key = os.environ.get("SJDAS_LICENSE_SIGNING_KEY")
+            signature = data.get("signature")
+            if not signing_key or not isinstance(signature, str):
+                self.status = "INVALID"
+                return False
+            payload = f"{self.machine_id}:{expiry_str or ''}".encode("utf-8")
+            expected = hmac.new(signing_key.encode("utf-8"), payload, hashlib.sha256).hexdigest()
+            if not hmac.compare_digest(signature, expected):
                 self.status = "INVALID"
                 return False
 
-            # 2. Check Expiry
-            expiry_str = data.get('expiry')
-            if expiry_str:
-                exp_date = datetime.fromisoformat(expiry_str)
-                if datetime.now() > exp_date:
-                    logger.warning("License Expired.")
-                    self.status = "EXPIRED"
-                    return False
-
-            # 3. Verify Signature (Mock - in real app use RSA/AES)
-            # if not self.verify_crypto(data): return False
-
-            logger.info("Commercial License Validated. Welcome Pro User.")
-            self.status = "PRO"
-            return True
-
-        except Exception as e:
-            logger.error(f"License Validation Error: {e}")
-            self.status = "ERROR"
-            return False
+        self.status = "PRO"
+        self.expiry = expiry_str
+        return True
 
     def generate_trial_license(self):
         """Create a default trial license."""

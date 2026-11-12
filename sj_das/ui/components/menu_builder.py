@@ -307,6 +307,10 @@ class StandardMenuBuilder:
         btn.setMenu(menu)
         self._add_btn(btn)
 
+    def build_ai_tools_menu(self):
+        """Compatibility name retained for older UI integration callers."""
+        return self.build_ai_suite_menu()
+
     def build_ai_suite_menu(self):
         """Unified AI Suite Menu"""
         btn = DropDownPushButton("AI Suite", self.view)
