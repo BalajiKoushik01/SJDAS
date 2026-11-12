@@ -42,8 +42,8 @@ def test_cache_eviction():
 
     # Fill cache
     for i in range(10):
-        img = np.random.randint(0, 255, (100, 100, 3), dtype=np.uint8)
-        result = np.random.randint(0, 255, (100, 100, 3), dtype=np.uint8)
+        img = np.random.randint(0, 255, (200, 200, 3), dtype=np.uint8)
+        result = np.random.randint(0, 255, (200, 200, 3), dtype=np.uint8)
         cache.put(img, f'op_{i}', {}, result)
 
     stats = cache.get_stats()

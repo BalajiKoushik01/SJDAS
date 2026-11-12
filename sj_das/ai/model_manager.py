@@ -61,6 +61,7 @@ class ModelManager(QObject):
         self.ai_config = get_ai_config() if get_ai_config else None
         self.llm_engine = None
         self.sam_engine = None
+        self.minimax_engine = None
 
         logger.info(f"Using device: {self.device}")
 
@@ -244,6 +245,29 @@ class ModelManager(QObject):
 
         logger.warning("LLM engine not configured, cannot get suggestions")
         return None
+
+    def load_minimax(self) -> bool:
+        """Load the optional MiniMax provider without sending a prompt."""
+        try:
+            from sj_das.core.engines.llm.minimax_engine import get_minimax_engine
+            engine = get_minimax_engine()
+            if not engine:
+                return False
+            self.minimax_engine = engine
+            if hasattr(engine, "is_configured") and not engine.is_configured():
+                return False
+            self.model_loaded.emit("minimax")
+            return True
+        except Exception as exc:
+            logger.warning("MiniMax provider unavailable: %s", exc)
+            self.model_error.emit(str(exc))
+            return False
+
+    def get_minimax(self):
+        """Return an already configured provider or None."""
+        if self.minimax_engine is None:
+            self.load_minimax()
+        return self.minimax_engine
 
     def load_llm(self, model_path: Optional[str] = None) -> bool:
         """Load and configure Local LLM engine."""

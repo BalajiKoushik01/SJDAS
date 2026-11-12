@@ -105,6 +105,10 @@ class AGIAssistant:
             "data": {"seed": seed, "optimize_seamless": True, "prompt": cmd}
         }
 
+    def _handle_design_analysis(self, cmd: str) -> Dict[str, Any]:
+        """Compatibility entry point used by design-analysis integrations."""
+        return self._handle_analysis(cmd)
+
     def _handle_analysis(self, cmd: str) -> Dict[str, Any]:
         """Handle analysis requests triggering LLM analysis."""
         design_desc = cmd.replace(

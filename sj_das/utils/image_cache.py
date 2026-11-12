@@ -155,6 +155,9 @@ class ImageCache:
         """Clear all cached entries."""
         self.cache.clear()
         self.current_size = 0
+        self.hits = 0
+        self.misses = 0
+        self.evictions = 0
         logger.info("Cache cleared")
 
     def __repr__(self) -> str:
