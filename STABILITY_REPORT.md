@@ -1,7 +1,9 @@
 # SJDAS v2.2.0 Stability & Engineering Report
 **Project Identity:** Enterprise Autonomous Textile Studio
 **Revision:** v2.2.0: Stabilized AI Jacquard Edition
-**Status:** 🟢 STABLE (Production-Ready for Pilot)
+**Historical status label (March 2026):** STABLE (Production-Ready for Pilot) — **not a current release certification**
+
+> **Current interpretation (November 2026):** This is a historical engineering report, not independent certification of factory safety, reliability, AI performance or a complete release. The listed 16/16 UI checks represent the reported historical test scope; they do not establish zero defects or full coverage. The current README and [release evidence checklist](docs/RELEASE_EVIDENCE.md) govern release claims.
 
 ## 1. Executive Summary
 This report documents the definitive stabilization and modernization of the SJDAS AI Jacquard Designer. Between v2.1.2 and v2.2.0, the core controller architecture underwent a major consolidation and hardening process to resolve all known runtime crashes, signal-slot mismatches, and UI initialization bottlenecks.
@@ -43,7 +45,7 @@ Executed `tests/test_ui_comprehensive.py` on the v2.2.0-stabilized head.
 **Findings:** 0 High/Medium/Low Vulnerabilities.
 
 ## 4. Conclusion
-SJDAS v2.2.0 is the most stable and performant version of the software to date. The architectural hardening ensures that all AI and Textile modules are fully functional and crash-free for the upcoming TCS pilot demonstration.
+SJDAS v2.2.0 is the most stable and performant version of the software to date. The architectural hardening recorded improvements to selected UI and controller paths. It does not establish that all AI, textile, export or physical loom integrations are defect-free or validated for the intended factory environment.
 
 ---
 *Report Generated: 2026-03-30 15:23 IST*
