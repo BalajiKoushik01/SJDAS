@@ -4,9 +4,11 @@
 **Test Type**: Comprehensive Integration & Functionality Verification
 
 ## Executive Summary
-✅ **ALL TESTS PASSED** - Application is fully integrated and functional. All components import correctly, all key methods are present, and the application launches without errors.
+**Historical test snapshot (29 December 2025):** the checks described below reported passing on the software version tested at that time. These import and basic startup checks do not establish that the current application is fully integrated, fault-free or compatible with factory equipment.
 
 ---
+
+> **Current release status:** consult [release evidence](RELEASE_EVIDENCE.md) and current GitHub CI. This dated record must not be reused as unconditional proof of a production-ready build.
 
 ## Component Import Tests
 

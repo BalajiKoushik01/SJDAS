@@ -49,7 +49,7 @@ Pytest settings in `pyproject.toml` enable coverage reporting. No assertion abou
 - Test on the intended loom/controller combination and document the result.
 - Do not assume that source-code support for an export format proves hardware interoperability.
 
-See the project specifications and `docs/product/` for design intent. Those documents may describe planned behaviour, not necessarily fully implemented features.
+See the [release evidence requirements](docs/RELEASE_EVIDENCE.md), the project specifications and `docs/product/` for design intent. Those documents may describe planned behaviour, not necessarily fully implemented features.
 
 ## Security and deployment
 
